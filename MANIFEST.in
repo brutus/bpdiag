@@ -1,0 +1,3 @@
+recursive-include bpdiag *.py
+include setup.py
+include README.rst LICENSE.txt CHANGES.txt
