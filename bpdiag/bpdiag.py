@@ -4,8 +4,10 @@
 """
 BP Diag
 
-Parse blood preasure statistics from data files and print them to STDERR.
-You can also generate SVG charts from the data and export it to JSON.
+**BP Diag** parses blood preasure statistics from data files and print some
+statistics to *STDERR*. You can export the data (and the gathered statistics)
+to **JSON** (dump to *STDOUT*). And you can also generate **SVG** or **PNG**
+charts from it.
 
 PyGal_ is used to generate the charts. You can install it like this::
 
