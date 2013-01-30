@@ -65,6 +65,22 @@ Instead of the interactive SVG charts you can use PNG as output format. Just
 use the ``--png`` option along with ``--chart``. You need a couple more
 depnedensiec for that though, take a look below.
 
+Number of measurements per line
+-------------------------------
+
+Per default all values are gathered one after the other and parsing errors are
+ignored. But you can use the ``--entries`` option to set a fixed number of
+measurements per line.
+
+What this means is that only that much values are used per line (even if there
+are more) and if a line contains less than *entries* values, the remaining
+ones are filled with ``None`` values. Also values that conatin ``-`` (or any
+other combination of characters that does not parse to a three integer tuple)
+are not ignored but stored as a ``None`` value too.
+
+This can be helpful in cases where you have a given number of measurements per
+day (let's say four) and keep them on a seperate line for each day.
+
 
 Install
 =======
