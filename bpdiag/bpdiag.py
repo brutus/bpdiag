@@ -36,6 +36,7 @@ import json
 
 try:
   import pygal
+  from pygal.style import DefaultStyle, LightSolarizedStyle
 except ImportError:
   pass
 
@@ -109,13 +110,16 @@ def parse_data(filename, entries=0, delimeter=',', seperator='/'):
 
 def generate_chart(
   stats, filename='gb.svg', png=False,
-  no_dots=False, no_lines=False, fill=False
+  no_dots=False, no_lines=False, fill=False, light=False
 ):
   """
   Generate a SVG chart from *stats*.
 
   """
-  chart = pygal.Line(show_dots=not no_dots, stroke=not no_lines, fill=fill)
+  style = LightSolarizedStyle if light else DefaultStyle
+  chart = pygal.Line(
+    show_dots=not no_dots, stroke=not no_lines, fill=fill, style=style
+  )
   # chart.title = "Blood Pressure Statistics"
   chart.add('sys', stats.sys)
   chart.add('dia', stats.dia)
@@ -181,6 +185,10 @@ def parse_args(args):
     help="render to PNG instead of interactive SVG"
   )
   g_chart.add_argument(
+    '--light', action='store_true',
+    help="render to a white background"
+  )
+  g_chart.add_argument(
     '--no-dots', action='store_true',
     help="don't draw dots"
   )
@@ -241,7 +249,7 @@ def main(args=None):
     if pygal:
       generate_chart(
         stats, args.filename, args.png,
-        args.no_dots, args.no_lines, args.fill
+        args.no_dots, args.no_lines, args.fill, args.light
       )
       print >> sys.stderr, "Generated chart: '{}'".format(args.filename)
     else:
