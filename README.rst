@@ -2,10 +2,10 @@
 BP Diag
 =======
 
-**BP Diag** parses blood preasure statistics from data files and print some
-statistics to *STDERR*. You can export the data (and the gathered statistics)
-to **JSON** (dump to *STDOUT*). And you can also generate **SVG** or **PNG**
-charts from it.
+**BP Diag** parses blood preasure statistics from data files, generates some
+statistics and prints them to *STDERR*. You can export the data (and the
+gathered statistics) to **JSON** (dump to *STDOUT*). And you can also generate
+**SVG** or **PNG** charts from it.
 
 To see a list of possible command line options run::
 
