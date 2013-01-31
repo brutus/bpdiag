@@ -57,13 +57,13 @@ Generate Charts
 ---------------
 
 To generate SVG charts, you need to have PyGal_ installed (see below). Other
-than that, just use the ``--chart`` option to have an chart called ``bp.svg``
+than that, just use the ``--chart`` option to have a chart called ``bp.svg``
 generated in your current directory. There are more options to this, take a
 look at the ``--help`` output.
 
 Instead of the interactive SVG charts you can use PNG as output format. Just
 use the ``--png`` option along with ``--chart``. You need a couple more
-depnedensiec for that though, take a look below.
+dependencies for that though, take a look below.
 
 Number of measurements per line
 -------------------------------
