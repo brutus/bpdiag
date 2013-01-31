@@ -79,7 +79,14 @@ other combination of characters that does not parse to a three integer tuple)
 are not ignored but stored as a ``None`` value too.
 
 This can be helpful in cases where you have a given number of measurements per
-day (let's say four) and keep them on a seperate line for each day.
+line and you want to keep them aligned even if sometimes a measurement is
+skipped / missing.::
+
+    bpdiag.py --json --compact --entries 4 bp.csv
+
+Will result in the following JSON::
+
+    [[136,83,65],[132,82,70],null,null,[144,82,86],[137,81,75],null,[143,80,68],[131,82,60],[144,82,64],[136,79,67],[140,80,62],[136,83,68],[138,80,99],null,[133,74,65],[136,79,67],[131,76,64],[135,81,72],[136,75,61],[127,79,72],null,null,null]
 
 
 Install
