@@ -82,7 +82,7 @@ class Stats(object):
     return self.__dict__
 
 
-def parse_data(filename, entries=0, delimeter=',', seperator='/'):
+def parse_data(filename, entries=0, delimeter=',', seperator='/', check=False):
   """
   Return a list of sys/dia/pulse tuples parsed from *filename*.
 
@@ -97,14 +97,21 @@ def parse_data(filename, entries=0, delimeter=',', seperator='/'):
   data = []
   with open(filename) as fh:
     for line in fh:
+      # get each mesurement / token from the line
       tokens = line.split(delimeter)
+      # if *entries* is set parse that much tokens else parse all
       for i in range(entries if entries else len(tokens)):
         try:
           sys, dia, pulse = [int(x) for x in tokens[i].split(seperator)]
           data.append((sys, dia, pulse))
         except (IndexError, ValueError):
+          # if *check* report any parsing errors
+          if check:
+            raise
+          # if *entries* store ``None`` value
           if entries:
             data.append(None)
+          # else just ignore the error and go on
   return data
 
 
@@ -207,6 +214,10 @@ def parse_args(args):
   )
   g_parse = ap.add_argument_group('Parsing')
   g_parse.add_argument(
+    '--check', action='store_true',
+    help="break on any parsing errors and report them"
+  )
+  g_parse.add_argument(
     '-e', '--entries', metavar='INT', type=int, default=0,
     help="max. number of measures per line (default: 0=all)"
   )
@@ -224,12 +235,16 @@ def parse_args(args):
 def main(args=None):
   # parse commandline
   args = parse_args(args)
-  # collect *data*
+  # collect data from all given files
   data = []
-  for filename in args.filenames:
-    data.extend(parse_data(
-      filename, args.entries, args.delimeter, args.seperator)
-    )
+  try:
+    for filename in args.filenames:
+      data.extend(parse_data(
+        filename, args.entries, args.delimeter, args.seperator, args.check
+      ))
+  except (IndexError, ValueError) as e:
+    print >> sys.stderr, "ERROR while parsing '{}': {}".format(filename, e)
+    return 2  # parsing error
   print >> sys.stderr, "Read {} value(s) from {} file(s)...".format(
     len(data), len(args.filenames)
   )
