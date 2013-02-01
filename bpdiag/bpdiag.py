@@ -235,7 +235,8 @@ def main(args=None):
   )
   # generate stats
   stats = Stats(data)
-  print >> sys.stderr, "Statistics (min, max, avg):\n"\
+  print >> sys.stderr,\
+    "Statistics (min, max, avg):\n"\
     ":: SYS...: {0.sys_min:3}, {0.sys_max:3}, {0.sys_avg:3}\n"\
     ":: DIA...: {0.dia_min:3}, {0.dia_max:3}, {0.dia_avg:3}\n"\
     ":: PULSE.: {0.pulse_min:3}, {0.pulse_max:3}, {0.pulse_avg:3}\n".format(stats)
@@ -258,10 +259,12 @@ def main(args=None):
       )
       print >> sys.stderr, "Generated chart: '{}'".format(args.filename)
     except NameError:
-      print >> sys.stderr, "ERROR: For chart export you need to have PyGal installed."
+      print >> sys.stderr,\
+        "ERROR: For chart export you need to have PyGal installed."
       return 1  # library error
     except ImportError:
-      print >> sys.stderr, "ERROR: For PNG export you need: CairoSVG, tinycss and cssselect."
+      print >> sys.stderr,\
+        "ERROR: For PNG export you need: CairoSVG, tinycss and cssselect installed."
       return 1   # library error
   return 0  # no errors
 
