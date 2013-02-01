@@ -113,7 +113,17 @@ def generate_chart(
   dots=True, lines=True, fill=False
 ):
   """
-  Generate a SVG chart from *stats*.
+  Generate a line-chart from *stats*.
+
+  *stats* needs to be an instance of :cls:`Stats` (or similar).
+
+  Per default an interactive SVG chart is generated under *filename*. If you
+  set *png*, an PNG image is exported instead. If *light* is set, a light
+  background is used, instead of the default dark one.
+
+  If *dots* is set, each value is marked by a dot. If *lines* is set, the
+  values are connected by lines. And if *fill* is set, the area between the
+  floor and the lines is filled with the same color as the line.
 
   """
   style = LightSolarizedStyle if light else DefaultStyle
