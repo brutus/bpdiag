@@ -109,7 +109,7 @@ def parse_data(filename, entries=0, delimeter=',', seperator='/'):
 
 
 def generate_chart(
-  stats, filename='gb.svg', png=False,
+  stats, filename='bpdiag.svg', png=False,
   no_dots=False, no_lines=False, fill=False, light=False
 ):
   """
