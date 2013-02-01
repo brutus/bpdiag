@@ -128,10 +128,7 @@ def generate_chart(
   if png:
     if filename.endswith('.svg'):
       filename = filename[:-4] + '.png'
-    try:
-      chart.render_to_png(filename)
-    except ImportError:
-      print "ERROR: For PNG export you need: CairoSVG, tinycss and cssselect."
+    chart.render_to_png(filename)
   else:
     chart.render_to_file(filename)
 
@@ -246,15 +243,19 @@ def main(args=None):
       indent=args.indent, separators=args.separators, sort_keys=args.sort
     )
   if args.chart:
-    if pygal:
+    try:
       generate_chart(
         stats, args.filename, args.png,
         args.no_dots, args.no_lines, args.fill, args.light
       )
       print >> sys.stderr, "Generated chart: '{}'".format(args.filename)
-    else:
-      print >> sys.stderr, "ERROR: You need to have PyGal installed for that."
-  return 0
+    except NameError:
+      print >> sys.stderr, "ERROR: For chart export you need to have PyGal installed."
+      return 1  # library error
+    except ImportError:
+      print >> sys.stderr, "ERROR: For PNG export you need: CairoSVG, tinycss and cssselect."
+      return 1   # library error
+  return 0  # no errors
 
 
 if __name__ == '__main__':
