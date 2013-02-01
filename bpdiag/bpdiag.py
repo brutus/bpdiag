@@ -109,8 +109,8 @@ def parse_data(filename, entries=0, delimeter=',', seperator='/'):
 
 
 def generate_chart(
-  stats, filename='bpdiag.svg', png=False,
-  no_dots=False, no_lines=False, fill=False, light=False
+  stats, filename='bpdiag.svg', png=False, light=False,
+  dots=True, lines=True, fill=False
 ):
   """
   Generate a SVG chart from *stats*.
@@ -118,13 +118,11 @@ def generate_chart(
   """
   style = LightSolarizedStyle if light else DefaultStyle
   chart = pygal.Line(
-    show_dots=not no_dots, stroke=not no_lines, fill=fill, style=style
+    show_dots=dots, stroke=lines, fill=fill, style=style
   )
-  # chart.title = "Blood Pressure Statistics"
   chart.add('sys', stats.sys)
   chart.add('dia', stats.dia)
   chart.add('pulse', stats.pulse)
-  # render it:
   if png:
     if filename.endswith('.svg'):
       filename = filename[:-4] + '.png'
@@ -245,8 +243,8 @@ def main(args=None):
   if args.chart:
     try:
       generate_chart(
-        stats, args.filename, args.png,
-        args.no_dots, args.no_lines, args.fill, args.light
+        stats, args.filename, args.png, args.light,
+        not args.no_dots, not args.no_lines, args.fill
       )
       print >> sys.stderr, "Generated chart: '{}'".format(args.filename)
     except NameError:
