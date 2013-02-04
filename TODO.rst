@@ -6,9 +6,13 @@ General
 
 * Add ``Measurement`` class
 
+* Add date & time handling
+
 
 Parsing
 -------
+
+* simple parser: add "skip-char"
 
 * Add a JSON parser
 
@@ -44,14 +48,28 @@ Parsing
     DictReader(csvfile, fieldnames=None, restkey=None, restval=None, dialect='excel', *args, **kwds)
 
 
+statistics
+----------
+
+* check if stats are ``True`` (have data)
+
+* daily min / max / avg
+
+* values that are too high (> 130/85 70)
+
+  * and way to high (> 140/90 100)
+
+
 Output
 ------
 
-* More statistics:
+* JSON full dict output
 
-  * daily min / max / avg
+* plaint text output
 
-  * values that are too high (and way to high)
+
+Charts
+------
 
 * *width* & *height* for charts
 
