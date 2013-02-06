@@ -69,7 +69,7 @@ class Measurement(object):
     return (self.sys, self.dia, self.pulse)
 
   def as_dict(self):
-    return self.__dict__
+    return self.__dict__.copy()
 
   def __str__(self):
     return "{0.sys:3}/{0.dia:3}/{0.pulse:3}".format(self)
@@ -117,7 +117,12 @@ class Stats(object):
           setattr(self, attr + ending, None)
 
   def as_dict(self):
-    return self.__dict__
+    data = {}
+    data['data'] = [m.as_dict() if m else None for m in self.data]
+    for attr in self.__dict__:
+      if attr != 'data':
+        data[attr] = getattr(self, attr)
+    return data
 
 
 def parse_simple(lines, entries=0, skip='-', seperator='/', delimeter=',', check=False):
@@ -228,30 +233,20 @@ def parse_args(args):
   )
   g_out = ap.add_argument_group('Output')
   g_out.add_argument(
-    '-j', '--json', action='store_true',
-    help="if set, export data to JSON"
-  )
-  g_out.add_argument(
-    '-J', '--json-stats', action='store_true',
-    help="if set, export statistics to JSON"
-  )
-  g_out.add_argument(
     '-c', '--chart', action='store_true',
-    help="if set, export data to chart"
+    help="export data to chart"
   )
-  g_json = ap.add_argument_group('JSON')
-  g_json.add_argument(
-    '--indent', type=int, metavar='INT', default=None,
-    help="set the number of spaces used as indent (default=none, 0=newline)"
+  g_out.add_argument(
+    '-j', '--json', action='store_true',
+    help="export to JSON as array of SYS, DIA, PULS arrays"
   )
-  g_json.add_argument(
-    '--compact', action='store_const', dest='separators',
-    const=(',', ':'), default=(', ', ': '),
-    help="skip emty spaces after `,` and `:`."
+  g_out.add_argument(
+    '-J', '--json-obj', action='store_true',
+    help="export to JSON as array of objects"
   )
-  g_json.add_argument(
-    '--sort', action='store_true',
-    help="sort JSON dicts by key."
+  g_out.add_argument(
+    '--json-stats', action='store_true',
+    help="export statistics to JSON as object"
   )
   g_chart = ap.add_argument_group('Chart')
   g_chart.add_argument(
@@ -277,6 +272,20 @@ def parse_args(args):
   g_chart.add_argument(
     '--fill', action='store_true',
     help="fill lines"
+  )
+  g_json = ap.add_argument_group('JSON')
+  g_json.add_argument(
+    '--indent', type=int, metavar='INT', default=None,
+    help="set the number of spaces used as indent (default=none, 0=newline)"
+  )
+  g_json.add_argument(
+    '--compact', action='store_const', dest='separators',
+    const=(',', ':'), default=(', ', ': '),
+    help="skip emty spaces after `,` and `:`."
+  )
+  g_json.add_argument(
+    '--sort', action='store_true',
+    help="sort JSON dicts by key."
   )
   g_parse = ap.add_argument_group('Parsing')
   g_parse.add_argument(
@@ -348,12 +357,17 @@ def main(args=None):
     print json.dumps(
       [m.as_tuple() if m else None for m in data],
       indent=args.indent, separators=args.separators, sort_keys=args.sort
-    )
+    ), "\n\n"
+  if args.json_obj:
+    print json.dumps(
+      [m.as_dict() if m else None for m in data],
+      indent=args.indent, separators=args.separators, sort_keys=args.sort
+    ), "\n\n"
   if args.json_stats:
     print json.dumps(
       stats.as_dict(),
       indent=args.indent, separators=args.separators, sort_keys=args.sort
-    )
+    ), "\n\n"
   if args.chart:
     try:
       generate_chart(

@@ -59,8 +59,6 @@ statistics
 Output
 ------
 
-* JSON full dict output
-
 * plaint text output
 
 
