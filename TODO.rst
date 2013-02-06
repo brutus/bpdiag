@@ -47,8 +47,6 @@ Parsing
 statistics
 ----------
 
-* check if stats are ``True`` (have data)
-
 * daily min / max / avg
 
 * values that are too high (> 130/85 70)

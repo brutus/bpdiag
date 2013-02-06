@@ -124,6 +124,9 @@ class Stats(object):
         data[attr] = getattr(self, attr)
     return data
 
+  def __nonzero__(self):
+    return True if self.data else False
+
 
 def parse_simple(lines, entries=0, skip='-', seperator='/', delimeter=',', check=False):
   """
@@ -346,21 +349,22 @@ def main(args=None):
     return 2  # parsing error
   # generate stats
   stats = Stats(data)
-  if data:
+  del data  # we no longer need this
+  if stats:
     print >> sys.stderr,\
       "Statistics (min, max, avg):\n"\
       ":: SYS...: {0.sys_min:3}, {0.sys_max:3}, {0.sys_avg:3}\n"\
       ":: DIA...: {0.dia_min:3}, {0.dia_max:3}, {0.dia_avg:3}\n"\
-      ":: PULSE.: {0.pulse_min:3}, {0.pulse_max:3}, {0.pulse_avg:3}\n".format(stats)
+      ":: PULSE.: {0.pulse_min:3}, {0.pulse_max:3}, {0.pulse_avg:3}".format(stats)
   # do some stuff
   if args.json:
     print json.dumps(
-      [m.as_tuple() if m else None for m in data],
+      [m.as_tuple() if m else None for m in stats.data],
       indent=args.indent, separators=args.separators, sort_keys=args.sort
     ), "\n\n"
   if args.json_obj:
     print json.dumps(
-      [m.as_dict() if m else None for m in data],
+      [m.as_dict() if m else None for m in stats.data],
       indent=args.indent, separators=args.separators, sort_keys=args.sort
     ), "\n\n"
   if args.json_stats:
