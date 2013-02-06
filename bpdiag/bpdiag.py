@@ -41,12 +41,46 @@ except ImportError:
   pass
 
 
+class BpdiagError(Exception):
+  pass
+
+
+class Measurement(object):
+
+  """
+  Represents a blood preasure measurement.
+
+  The needed attributes are *sys* (systolic, maximum), *dia* (diastolic,
+  minimum) - both in mm Hg - and *pulse* (arterial pulse per minute).
+
+  You can set additional arbitrary attributes trough keywords, eg: date, time,
+  or flags for irregular heartbeat or excessive movement, etc.
+
+  """
+
+  def __init__(self, sys, dia, pulse, **kwargs):
+    self.sys = int(sys)
+    self.dia = int(dia)
+    self.pulse = int(pulse)
+    for key, value in kwargs.items():
+      setattr(self, key, value)
+
+  def as_tuple(self):
+    return (self.sys, self.dia, self.pulse)
+
+  def as_dict(self):
+    return self.__dict__
+
+  def __str__(self):
+    return "{0.sys:3}/{0.dia:3}/{0.pulse:3}".format(self)
+
+
 class Stats(object):
 
   """
   Collects and calculates statistics from *data*.
 
-  *data* needs to be a list of sys/dia/pulse tuples.
+  *data* needs to be a list of :cls:`Measurement` instances.
 
   The main attributes are the following three lists: **sys** (all systolic
   values), **dia** (all diastolic values) and **pulse** (all pulse values).
@@ -62,56 +96,88 @@ class Stats(object):
     self.evaluate_data()
 
   def evaluate_data(self):
+    """Build sys / dia / pulse list."""
     self.sys = []
     self.dia = []
     self.pulse = []
     for measure in self.data:
-      try:
-        sys, dia, pulse = measure
-      except TypeError:
-        sys = dia = pulse = None
-      for attr, value in ((self.sys, sys), (self.dia, dia), (self.pulse, pulse)):
-        attr.append(value)
-    for attr, values in (('sys', self.sys), ('dia', self.dia), ('pulse', self.pulse)):
+      for attr in ('sys', 'dia', 'pulse'):
+        getattr(self, attr).append(getattr(measure, attr, None))
+    # calculate statistics
+    for attr, values in (
+      ('sys', self.sys), ('dia', self.dia), ('pulse', self.pulse)
+    ):
       values = filter(None, values)
-      setattr(self, attr + '_min', min(values))
-      setattr(self, attr + '_max', max(values))
-      setattr(self, attr + '_avg', sum(values) / len(values))
+      if values:
+        setattr(self, attr + '_min', min(values))
+        setattr(self, attr + '_max', max(values))
+        setattr(self, attr + '_avg', sum(values) / len(values))
+      else:
+        for ending in ('_min', '_max', '_avg'):
+          setattr(self, attr + ending, None)
 
   def as_dict(self):
     return self.__dict__
 
 
-def parse_data(filename, entries=0, delimeter=',', seperator='/', check=False):
+def parse_simple(lines, entries=0, skip='-', seperator='/', delimeter=',', check=False):
   """
-  Return a list of sys/dia/pulse tuples parsed from *filename*.
+  Return a list of :cls:`Measurement` instances parsed from *lines*.
 
-  *deli* is used to split multiple maesurements on one line,
-  *seperator* is used to split the sys/dia/pulse tokens into the three values.
+  *lines* can contain any number of sys/dia/pulse strings on each line.
 
-  If *entries* is set, only that much measures are used per line (even if
-  there are more). If a line contains less than *entries* measures, the
-  remaining ones are filled with ``None`` values.
+  For each line **delimeter** is used to split multiple tokens on the line.
+  And **seperator** is used to split the tokens into the sys, dia and
+  pulse values.
+
+  If **entries** is set to a value greather than 0, only that much tokens are
+  used per line (even if there are more). If there are not enogh tokens on the
+  line (less than *entries*), ``None`` values are used for those. If
+  **skipped** is set too, entries that consist only of this string are also
+  ignored and stored as ``None`` values.
+
+  If *check* is ``None`` all errors are ignored. If ``True``, all errors are
+  reported. If set to ``False`` only errors through missing or skipped entries
+  while *entries* is set are ignored.
 
   """
   data = []
-  with open(filename) as fh:
-    for line in fh:
-      # get each mesurement / token from the line
-      tokens = line.split(delimeter)
-      # if *entries* is set parse that much tokens else parse all
-      for i in range(entries if entries else len(tokens)):
-        try:
-          sys, dia, pulse = [int(x) for x in tokens[i].split(seperator)]
-          data.append((sys, dia, pulse))
-        except (IndexError, ValueError):
-          # if *check* report any parsing errors
-          if check:
-            raise
-          # if *entries* store ``None`` value
-          if entries:
+  for line in [line.strip() for line in lines]:
+    if not line:
+      continue
+    tokens = line.split(delimeter)  # get each token from the line
+    # if *entries* is set, parse that much tokens, else parse all:
+    for i in range(entries if entries else len(tokens)):
+      try:
+        token = tokens[i].strip()
+        data.append(Measurement(*token.split(seperator)))
+      except IndexError:
+        if entries and not check:
+          # ``None`` for missing entries on the line
+          data.append(None)
+          continue
+        if check is None:
+          continue
+        msg = "not enough measurements on line, needed {} got {} from '{}'"
+        msg = msg.format(entries, len(line.split(delimeter)), line)
+        raise BpdiagError(msg)
+      except TypeError:
+        if entries and not check:
+          # ``None`` for skipped entries on the line or trailing whitespace
+          if (skip and token == skip) or (len(token) == 0 and len(tokens) - 1 == i):
             data.append(None)
-          # else just ignore the error and go on
+            continue
+        if check is None:
+          continue
+        msg = "wrong number of values in token, needed 3 got {} from '{}'"
+        msg = msg.format(len(token.split(seperator)), token)
+        raise BpdiagError(msg)
+      except ValueError:
+        if check is None:
+          continue
+        msg = "can't convert all values to INT: SYS: '{}', DIA: '{}', PULSE: '{}'"
+        msg = msg.format(*token.split(seperator))
+        raise BpdiagError(msg)
   return data
 
 
@@ -214,19 +280,28 @@ def parse_args(args):
   )
   g_parse = ap.add_argument_group('Parsing')
   g_parse.add_argument(
-    '--check', action='store_true',
+    '--check', dest='check', action='store_true', default=False,
     help="break on any parsing errors and report them"
   )
   g_parse.add_argument(
-    '-e', '--entries', metavar='INT', type=int, default=0,
-    help="max. number of measures per line (default: 0=all)"
+    '--no-check', dest='check', action='store_const', default=False, const=None,
+    help="ignore all parsing errors"
   )
-  g_parse.add_argument(
-    '-d', '--delimeter', metavar='STRING', default=',',
+  g_psimple = ap.add_argument_group('Parsing - Simple')
+  g_psimple.add_argument(
+    '-e', '--entries', metavar='INT', type=int, default=0,
+    help="number of measures per line (default: 0=all)"
+  )
+  g_psimple.add_argument(
+    '--skip', metavar='STRING', default='-',
+    help="denotes skipped values (default: '-')"
+  )
+  g_psimple.add_argument(
+    '--delimeter', metavar='STRING', default=',',
     help="splits multiple measures on one line (default: ',')"
   )
-  g_parse.add_argument(
-    '-s', '--seperator', metavar='STRING', default='/',
+  g_psimple.add_argument(
+    '--seperator', metavar='STRING', default='/',
     help="splits measure string to sys/dia/pulse values (default: '/')"
   )
   return ap.parse_args(args)
@@ -236,29 +311,39 @@ def main(args=None):
   # parse commandline
   args = parse_args(args)
   # collect data from all given files
-  data = []
+  lines = []
+  bad_files = 0
+  for filename in args.filenames:
+    try:
+      with open(filename) as fh:
+        lines.extend(fh.readlines())
+    except IOError:
+      print >> sys.stderr, "WARN: Can't read from '{}'".format(filename)
+      bad_files += 1
+      continue
+  # parse data
   try:
-    for filename in args.filenames:
-      data.extend(parse_data(
-        filename, args.entries, args.delimeter, args.seperator, args.check
-      ))
-  except (IndexError, ValueError) as e:
-    print >> sys.stderr, "ERROR while parsing '{}': {}".format(filename, e)
+    data = parse_simple(
+      lines, args.entries, args.skip, args.seperator, args.delimeter, args.check
+    )
+  except BpdiagError as e:
+    print >> sys.stderr, "[ERROR] while parsing '{}': {}".format(filename, e)
     return 2  # parsing error
   print >> sys.stderr, "Read {} value(s) from {} file(s)...".format(
-    len(data), len(args.filenames)
+    len(data), len(args.filenames) - bad_files
   )
   # generate stats
   stats = Stats(data)
-  print >> sys.stderr,\
-    "Statistics (min, max, avg):\n"\
-    ":: SYS...: {0.sys_min:3}, {0.sys_max:3}, {0.sys_avg:3}\n"\
-    ":: DIA...: {0.dia_min:3}, {0.dia_max:3}, {0.dia_avg:3}\n"\
-    ":: PULSE.: {0.pulse_min:3}, {0.pulse_max:3}, {0.pulse_avg:3}\n".format(stats)
+  if data:
+    print >> sys.stderr,\
+      "Statistics (min, max, avg):\n"\
+      ":: SYS...: {0.sys_min:3}, {0.sys_max:3}, {0.sys_avg:3}\n"\
+      ":: DIA...: {0.dia_min:3}, {0.dia_max:3}, {0.dia_avg:3}\n"\
+      ":: PULSE.: {0.pulse_min:3}, {0.pulse_max:3}, {0.pulse_avg:3}\n".format(stats)
   # do some stuff
   if args.json:
     print json.dumps(
-      data,
+      [m.as_tuple() if m else None for m in data],
       indent=args.indent, separators=args.separators, sort_keys=args.sort
     )
   if args.json_stats:
@@ -275,11 +360,11 @@ def main(args=None):
       print >> sys.stderr, "Generated chart: '{}'".format(args.filename)
     except NameError:
       print >> sys.stderr,\
-        "ERROR: For chart export you need to have PyGal installed."
+        "[ERROR] For chart export you need to have PyGal installed."
       return 1  # library error
     except ImportError:
       print >> sys.stderr,\
-        "ERROR: For PNG export you need: CairoSVG, tinycss and cssselect installed."
+        "[ERROR] For PNG export you need CairoSVG, tinycss and cssselect installed."
       return 1   # library error
   return 0  # no errors
 

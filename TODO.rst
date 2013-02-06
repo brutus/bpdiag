@@ -4,15 +4,11 @@ BP Diag - ToDo List
 General
 -------
 
-* Add ``Measurement`` class
-
 * Add date & time handling
 
 
 Parsing
 -------
-
-* simple parser: add "skip-char"
 
 * Add a JSON parser
 
