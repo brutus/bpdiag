@@ -326,12 +326,15 @@ def main(args=None):
     data = parse_simple(
       lines, args.entries, args.skip, args.seperator, args.delimeter, args.check
     )
+    print >> sys.stderr, "Read {} value(s) from {} file(s)...".format(
+      len(data), len(args.filenames) - bad_files
+    )
+    # delete some stuff we don't need anymore...
+    del lines
+    del bad_files
   except BpdiagError as e:
     print >> sys.stderr, "[ERROR] while parsing '{}': {}".format(filename, e)
     return 2  # parsing error
-  print >> sys.stderr, "Read {} value(s) from {} file(s)...".format(
-    len(data), len(args.filenames) - bad_files
-  )
   # generate stats
   stats = Stats(data)
   if data:
