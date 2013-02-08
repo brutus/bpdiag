@@ -253,11 +253,11 @@ def parse_args(args):
   # options
   g_check = ap.add_mutually_exclusive_group()
   g_check.add_argument(
-    '--check', dest='check', action='store_true', default=False,
+    '-N', '--check', dest='check', action='store_true', default=False,
     help="break on any parsing errors and report them"
   )
   g_check.add_argument(
-    '--no-check', dest='check', action='store_const', default=False, const=None,
+    '-n', '--no-check', dest='check', action='store_const', default=False, const=None,
     help="ignore all parsing errors"
   )
   # output
