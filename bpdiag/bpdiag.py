@@ -222,6 +222,14 @@ def generate_chart(
     chart.render_to_file(filename)
 
 
+parsers = {
+  'plain': {
+    'func': parse_simple,
+    'args': ('entries', 'skip', 'seperator', 'delimeter', 'check')
+  },
+}
+
+
 def parse_args(args):
   """
   Return arguments parsed from *args*.
@@ -229,12 +237,31 @@ def parse_args(args):
   If *args* is ``None``, ``sys.argv`` is used (the commandline).
 
   """
-  ap = argparse.ArgumentParser(description=__doc__.split('\n\n')[1])
+  ap = argparse.ArgumentParser(
+    description=__doc__.split('\n\n')[1],
+    usage="%(prog)s [OPTIONS] [OUTPUT [OUTPUT OPTIONS]].. [PARSER [PARSER OPTIONS]] FILENAME..",
+  )
+  # positionals
+  ap.add_argument(
+    'parser', choices=parsers.keys(), nargs='?', default='plain',
+    help="select the parser to use (default: %(default)s)"
+  )
   ap.add_argument(
     'filenames', nargs='+', metavar="FILENAME",
     help="files containing the raw data"
   )
-  g_out = ap.add_argument_group('Output')
+  # options
+  g_check = ap.add_mutually_exclusive_group()
+  g_check.add_argument(
+    '--check', dest='check', action='store_true', default=False,
+    help="break on any parsing errors and report them"
+  )
+  g_check.add_argument(
+    '--no-check', dest='check', action='store_const', default=False, const=None,
+    help="ignore all parsing errors"
+  )
+  # output
+  g_out = ap.add_argument_group('output')
   g_out.add_argument(
     '-c', '--chart', action='store_true',
     help="export data to chart"
@@ -251,10 +278,11 @@ def parse_args(args):
     '--json-stats', action='store_true',
     help="export statistics to JSON as object"
   )
-  g_chart = ap.add_argument_group('Chart')
+  # charts
+  g_chart = ap.add_argument_group('chart options')
   g_chart.add_argument(
     '-f', '--filename', default='bp.svg',
-    help="filename of the chart (default: 'bp.svg')"
+    help="filename of the chart (default: '%(default)s')"
   )
   g_chart.add_argument(
     '--png', action='store_true',
@@ -276,45 +304,43 @@ def parse_args(args):
     '--fill', action='store_true',
     help="fill lines"
   )
-  g_json = ap.add_argument_group('JSON')
+  # json
+  g_json = ap.add_argument_group('json options')
   g_json.add_argument(
     '--indent', type=int, metavar='INT', default=None,
-    help="set the number of spaces used as indent (default=none, 0=newline)"
+    help="set the number of spaces used as indent; 0 = newline (default: none)"
   )
   g_json.add_argument(
     '--compact', action='store_const', dest='separators',
     const=(',', ':'), default=(', ', ': '),
-    help="skip emty spaces after `,` and `:`."
+    help="skip emty spaces after `,` and `:`"
   )
   g_json.add_argument(
     '--sort', action='store_true',
-    help="sort JSON dicts by key."
+    help="sort JSON dicts by key"
   )
-  g_parse = ap.add_argument_group('Parsing')
-  g_parse.add_argument(
-    '--check', dest='check', action='store_true', default=False,
-    help="break on any parsing errors and report them"
+  # parser :: plain
+  g_plain = ap.add_argument_group(
+    '[PARSER] plain',
+    "Each line of a file is parsed for one or more SYS, DIA and PULSE value(s). "
+    "A *seperator* and a *delimeter* is used for that. The *seperator* "
+    "seperates the three values and the *delimeter* multiple entires on a line."
   )
-  g_parse.add_argument(
-    '--no-check', dest='check', action='store_const', default=False, const=None,
-    help="ignore all parsing errors"
-  )
-  g_psimple = ap.add_argument_group('Parsing - Simple')
-  g_psimple.add_argument(
+  g_plain.add_argument(
     '-e', '--entries', metavar='INT', type=int, default=0,
-    help="number of measures per line (default: 0=all)"
+    help="number of measures per line; 0 = all (default: '%(default)s')"
   )
-  g_psimple.add_argument(
+  g_plain.add_argument(
     '--skip', metavar='STRING', default='-',
-    help="denotes skipped values (default: '-')"
+    help="denotes skipped values (default: '%(default)s')"
   )
-  g_psimple.add_argument(
+  g_plain.add_argument(
     '--delimeter', metavar='STRING', default=',',
-    help="splits multiple measures on one line (default: ',')"
+    help="splits multiple measures on one line (default: '%(default)s')"
   )
-  g_psimple.add_argument(
+  g_plain.add_argument(
     '--seperator', metavar='STRING', default='/',
-    help="splits measure string to sys/dia/pulse values (default: '/')"
+    help="splits measure string to sys/dia/pulse values (default: '%(default)s')"
   )
   return ap.parse_args(args)
 
@@ -335,9 +361,9 @@ def main(args=None):
       continue
   # parse data
   try:
-    data = parse_simple(
-      lines, args.entries, args.skip, args.seperator, args.delimeter, args.check
-    )
+    # call selected parser with the needed arguments
+    parser = parsers[args.parser]
+    data = parser['func'](lines, **{k: getattr(args, k) for k in parser['args'] if k in args})
     print >> sys.stderr, "Read {} value(s) from {} file(s)...".format(
       len(data), len(args.filenames) - bad_files
     )
