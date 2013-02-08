@@ -145,8 +145,8 @@ def parse_simple(lines, entries=0, skip='-', seperator='/', delimeter=',', check
   ignored and stored as ``None`` values.
 
   If *check* is ``None`` all errors are ignored. If ``True``, all errors are
-  reported. If set to ``False`` only errors through missing or skipped entries
-  while *entries* is set are ignored.
+  reported. If set to ``False`` only errors through skipped entries or missing
+  ones while *entries* is set are ignored.
 
   """
   data = []
@@ -160,7 +160,7 @@ def parse_simple(lines, entries=0, skip='-', seperator='/', delimeter=',', check
         token = tokens[i].strip()
         data.append(Measurement(*token.split(seperator)))
       except IndexError:
-        if entries and not check:
+        if not check and entries:
           # ``None`` for missing entries on the line
           data.append(None)
           continue
@@ -170,11 +170,15 @@ def parse_simple(lines, entries=0, skip='-', seperator='/', delimeter=',', check
         msg = msg.format(entries, len(line.split(delimeter)), line)
         raise BpdiagError(msg)
       except TypeError:
-        if entries and not check:
-          # ``None`` for skipped entries on the line or trailing whitespace
-          if (skip and token == skip) or (len(token) == 0 and len(tokens) - 1 == i):
+        # skipped entry or trailing whitespace?
+        if not check and (
+          (skip and token == skip) or
+          (len(token) == 0 and len(tokens) - 1 == i)
+        ):
+          # store ``None`` if *entries*
+          if entries:
             data.append(None)
-            continue
+          continue
         if check is None:
           continue
         msg = "wrong number of values in token, needed 3 got {} from '{}'"

@@ -44,8 +44,8 @@ cases_parse_simple = (
 )
 
 cases_parse_simple_errors = (
-  ['asd'], ['-'], ['136/83/65 132/82/70'], ['136/8365, 132/82/70'], ['136/83/e65'],
-  ['136/83/65, w132/82/70'], ['136/83/65, -, 132/82/70'], ['136/83/65, asd, 132/82/70'],
+  ['asd'], ['136/83/65 132/82/70'], ['136/8365, 132/82/70'], ['136/83/e65'],
+  ['136/83/65, w132/82/70'], ['136/83/65, asd, 132/82/70']
 )
 
 cases_parse_simple_entries = (  # data, entries, expected
@@ -147,24 +147,32 @@ def test_parse_simple_parseopts():
   for sep in ('-', '--', ':', ' - '):
     for case, exp in cases_parse_simple:
       new_case = [line.replace('/', sep) for line in case]
-      print "'{}' -> '{}'".format(sep, new_case)
       res = [m.as_tuple() for m in parse_simple(new_case, seperator=sep)]
       assert_equal(res, exp)
   for deli in ('-', '--', ':', ' - '):
     for case, exp in cases_parse_simple:
       new_case = [line.replace(',', deli) for line in case]
-      print "'{}' -> '{}'".format(deli, new_case)
       res = [m.as_tuple() for m in parse_simple(new_case, delimeter=deli)]
       assert_equal(res, exp)
+  # check *skip*
+  lines = ('123/78/67, - , 123/78/67', '-, 123/78/67, -')
+  exp = [(123, 78, 67), (123, 78, 67), (123, 78, 67)]
+  res = [m.as_tuple() for m in parse_simple(lines, skip='-')]
+  assert_equal(res, exp)
 
 
 def test_parse_simple_entries():
-  # check that parsing withj ``entries`` set gets the expected results:
+  # check that parsing with ``entries`` set gets the expected results:
   for data, entries, exp in cases_parse_simple_entries:
     res = parse_simple(data, entries=entries)
     assert_equal(len(res) % entries, 0)
     res = [(m.as_tuple() if m is not None else None) for m in res]
     assert_equal(res, exp)
+  # check *skip*
+  lines = ('123/78/67, - , 132/87/67', '-, 123/78/67, -')
+  exp = [(123, 78, 67), None, None, (123, 78, 67)]
+  res = [m.as_tuple() if m else None for m in parse_simple(lines, skip='-', entries=2)]
+  assert_equal(res, exp)
 
 
 def test_parse_simple_entries_errors():
