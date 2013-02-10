@@ -404,11 +404,9 @@ def main(args=None):
   try:
     # parse commandline
     args = get_argument_parser().parse_args(args)
-    # parse data from all given files (iterative)
-    data = parse_data(read_files(args.filenames), args)
-    print >> sys.stderr, "Parsed {} value(s)...".format(len(data))
-    # generate stats
-    stats = Statistic(data)
+    # parse data from all given files (iterative) and build statistics
+    stats = Statistic(parse_data(read_files(args.filenames), args))
+    print >> sys.stderr, "Parsed {} value(s)...".format(len(stats.data))
     if stats:
       print >> sys.stderr, stats_as_string(stats)
     # output: do some stuff
