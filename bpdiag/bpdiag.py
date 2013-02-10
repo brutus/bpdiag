@@ -37,6 +37,7 @@ __license__ = 'GNU General Public License v3 or above - '\
 import sys
 import argparse
 import json
+import itertools
 
 try:
   import pygal
@@ -46,6 +47,14 @@ try:
   )
 except ImportError:
   pass
+
+
+PARSERS = {
+  'plain': {
+    'func': 'parse_plaintext',
+    'args': ('entries', 'skip', 'seperator', 'delimeter', 'check')
+  },
+}
 
 
 class BpdiagError(Exception):
@@ -160,9 +169,8 @@ def parse_plaintext(
 
   """
   data = []
-  for line in [line.strip() for line in lines]:
-    if not line:
-      continue
+  # iterate over all non-empty lines
+  for line in itertools.ifilter(None, (line.strip() for line in lines)):
     tokens = line.split(delimeter)  # get each token from the line
     # if *entries* is set, parse that much tokens, else parse all:
     for i in range(entries if entries else len(tokens)):
@@ -170,8 +178,8 @@ def parse_plaintext(
         token = tokens[i].strip()
         data.append(Measurement(*token.split(seperator)))
       except IndexError:
+        # ``None`` for missing entries on the line if *entries*
         if not check and entries:
-          # ``None`` for missing entries on the line
           data.append(None)
           continue
         if check is None:
@@ -236,28 +244,15 @@ def output_chart(
     chart.render_to_file(filename)
 
 
-parsers = {
-  'plain': {
-    'func': parse_plaintext,
-    'args': ('entries', 'skip', 'seperator', 'delimeter', 'check')
-  },
-}
-
-
-def parse_args(args):
-  """
-  Return arguments parsed from *args*.
-
-  If *args* is ``None``, ``sys.argv`` is used (the commandline).
-
-  """
+def get_argument_parser():
+  """Return an ``ArgumentsParser`` instance."""
   ap = argparse.ArgumentParser(
     description=__doc__.split('\n\n')[1],
     usage="%(prog)s [OPTIONS] [OUTPUT [OUTPUT OPTIONS]].. [PARSER [PARSER OPTIONS]] FILENAME..",
   )
   # positionals
   ap.add_argument(
-    'parser', choices=parsers.keys(), nargs='?', default='plain',
+    'parser', choices=PARSERS.keys(), nargs='?', default='plain',
     help="select the parser to use (default: %(default)s)"
   )
   ap.add_argument(
@@ -356,77 +351,100 @@ def parse_args(args):
     '--seperator', metavar='STRING', default='/',
     help="splits measure string to sys/dia/pulse values (default: '%(default)s')"
   )
-  return ap.parse_args(args)
+  return ap
+
+
+def read_files(filenames):
+  for filename in filenames:
+    try:
+      with open(filename) as fh:
+        for line in fh:
+          yield line
+    except IOError:
+      print >> sys.stderr, "WARN: Can't read from '{}'".format(filename)
+      continue
+
+
+def parse_data(lines, args):
+  """
+  Return the results of the given parser function.
+
+  Use the global **PARSERS** data and *args* to determin wich parser to
+  call and which arguments to use (as keywords). *lines* will always be the
+  first positional argument to the call.
+
+  """
+  parser = PARSERS[args.parser]
+  func = globals()[parser['func']]
+  kwargs = {
+    name: getattr(args, name) for name in parser['args'] if name in args
+  }
+  return func(lines, **kwargs)
+
+
+def stats_as_string(stats):
+  """Return a string containing the info from *stats*."""
+  statstr =\
+    "Statistics (min, max, avg):\n"\
+    ":: SYS...: {0.sys_min:3}, {0.sys_max:3}, {0.sys_avg:3}\n"\
+    ":: DIA...: {0.dia_min:3}, {0.dia_max:3}, {0.dia_avg:3}\n"\
+    ":: PULSE.: {0.pulse_min:3}, {0.pulse_max:3}, {0.pulse_avg:3}"
+  return statstr.format(stats)
 
 
 def main(args=None):
-  # parse commandline
-  args = parse_args(args)
-  # collect data from all given files
-  lines = []
-  bad_files = 0
-  for filename in args.filenames:
-    try:
-      with open(filename) as fh:
-        lines.extend(fh.readlines())
-    except IOError:
-      print >> sys.stderr, "WARN: Can't read from '{}'".format(filename)
-      bad_files += 1
-      continue
-  # parse data
+  """
+  Read from all given *filenames*, use the specified *parser*, generate
+  *statistics* and print the requested *output*.
+
+  All arguments are parsed from **args**. If *args* is ``None``, ``sys.argv``
+  is used (the commandline).
+
+  """
   try:
-    # call selected parser with the needed arguments
-    parser = parsers[args.parser]
-    data = parser['func'](lines, **{k: getattr(args, k) for k in parser['args'] if k in args})
-    print >> sys.stderr, "Read {} value(s) from {} file(s)...".format(
-      len(data), len(args.filenames) - bad_files
-    )
-    # delete some stuff we don't need anymore...
-    del lines
-    del bad_files
-  except BpdiagError as e:
-    print >> sys.stderr, "[ERROR] while parsing '{}': {}".format(filename, e)
-    return 2  # parsing error
-  # generate stats
-  stats = Stats(data)
-  del data  # we no longer need this
-  if stats:
-    print >> sys.stderr,\
-      "Statistics (min, max, avg):\n"\
-      ":: SYS...: {0.sys_min:3}, {0.sys_max:3}, {0.sys_avg:3}\n"\
-      ":: DIA...: {0.dia_min:3}, {0.dia_max:3}, {0.dia_avg:3}\n"\
-      ":: PULSE.: {0.pulse_min:3}, {0.pulse_max:3}, {0.pulse_avg:3}".format(stats)
-  # do some stuff
-  if args.json:
-    print json.dumps(
-      [m.as_tuple() if m else None for m in stats.data],
-      indent=args.indent, separators=args.separators, sort_keys=args.sort
-    ), "\n\n"
-  if args.json_obj:
-    print json.dumps(
-      [m.as_dict() if m else None for m in stats.data],
-      indent=args.indent, separators=args.separators, sort_keys=args.sort
-    ), "\n\n"
-  if args.json_stats:
-    print json.dumps(
-      stats.as_dict(),
-      indent=args.indent, separators=args.separators, sort_keys=args.sort
-    ), "\n\n"
-  if args.chart:
-    try:
+    # parse commandline
+    args = get_argument_parser().parse_args(args)
+    # parse data from all given files (iterative)
+    data = parse_data(read_files(args.filenames), args)
+    print >> sys.stderr, "Parsed {} value(s)...".format(len(data))
+    # generate stats
+    stats = Stats(data)
+    if stats:
+      print >> sys.stderr, stats_as_string(stats)
+    # output: do some stuff
+    if args.json:
+      print json.dumps(
+        [m.as_tuple() if m else None for m in stats.data],
+        indent=args.indent, separators=args.separators, sort_keys=args.sort
+      ), "\n\n"
+    if args.json_obj:
+      print json.dumps(
+        [m.as_dict() if m else None for m in stats.data],
+        indent=args.indent, separators=args.separators, sort_keys=args.sort
+      ), "\n\n"
+    if args.json_stats:
+      print json.dumps(
+        stats.as_dict(),
+        indent=args.indent, separators=args.separators, sort_keys=args.sort
+      ), "\n\n"
+    if args.chart:
       output_chart(
         stats, args.filename, args.png, args.light,
         not args.no_dots, not args.no_lines, args.fill
       )
       print >> sys.stderr, "Generated chart: '{}'".format(args.filename)
-    except NameError:
-      print >> sys.stderr,\
-        "[ERROR] For chart export you need to have PyGal installed."
-      return 1  # library error
-    except ImportError:
-      print >> sys.stderr,\
-        "[ERROR] For PNG export you need CairoSVG, tinycss and cssselect installed."
-      return 1   # library error
+  except BpdiagError as e:
+    print >> sys.stderr,\
+      "[ERROR] while parsing:", e
+    return 2  # parsing error
+  except NameError:
+    print >> sys.stderr,\
+      "[ERROR] For chart export you need to have PyGal installed."
+    return 1  # library error
+  except ImportError:
+    print >> sys.stderr,\
+      "[ERROR] For PNG export you need CairoSVG, tinycss and cssselect installed."
+    return 1   # library error
   return 0  # no errors
 
 
