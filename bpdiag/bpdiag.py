@@ -3,11 +3,15 @@
 
 """
 BP Diag
+=======
 
 **BP Diag** parses blood preasure statistics from data files, generates some
 statistics and prints them to *STDERR*. You can export the data (and the
 gathered statistics) to **JSON** (dump to *STDOUT*). And you can also generate
 **SVG** or **PNG** charts from it.
+
+Dependencies
+------------
 
 PyGal_ is used to generate the charts. You can install it like this::
 
@@ -25,7 +29,7 @@ cssselect_ too. You can install them like this::
 
 """
 
-__version__ = '0.3'
+__version__ = '0.4'
 __author__ = 'Brutus [DMC] <brutus.dmc@googlemail.com>'
 __license__ = 'GNU General Public License v3 or above - '\
               'http://www.opensource.org/licenses/gpl-3.0.html'
@@ -36,7 +40,10 @@ import json
 
 try:
   import pygal
-  from pygal.style import DefaultStyle, LightSolarizedStyle
+  from pygal.style import (
+    DefaultStyle as DarkStyle,
+    LightSolarizedStyle as LightStyle
+  )
 except ImportError:
   pass
 
@@ -128,7 +135,10 @@ class Stats(object):
     return True if self.data else False
 
 
-def parse_simple(lines, entries=0, skip='-', seperator='/', delimeter=',', check=False):
+def parse_plaintext(
+  lines,
+  entries=0, skip='-', seperator='/', delimeter=',', check=False
+):
   """
   Return a list of :cls:`Measurement` instances parsed from *lines*.
 
@@ -146,7 +156,7 @@ def parse_simple(lines, entries=0, skip='-', seperator='/', delimeter=',', check
 
   If *check* is ``None`` all errors are ignored. If ``True``, all errors are
   reported. If set to ``False`` only errors through skipped entries or missing
-  ones while *entries* is set are ignored.
+  ones (while *entries* is set) are ignored.
 
   """
   data = []
@@ -193,7 +203,7 @@ def parse_simple(lines, entries=0, skip='-', seperator='/', delimeter=',', check
   return data
 
 
-def generate_chart(
+def output_chart(
   stats, filename='bpdiag.svg', png=False, light=False,
   dots=True, lines=True, fill=False
 ):
@@ -211,7 +221,7 @@ def generate_chart(
   floor and the lines is filled with the same color as the line.
 
   """
-  style = LightSolarizedStyle if light else DefaultStyle
+  style = LightStyle if light else DarkStyle
   chart = pygal.Line(
     show_dots=dots, stroke=lines, fill=fill, style=style
   )
@@ -228,7 +238,7 @@ def generate_chart(
 
 parsers = {
   'plain': {
-    'func': parse_simple,
+    'func': parse_plaintext,
     'args': ('entries', 'skip', 'seperator', 'delimeter', 'check')
   },
 }
@@ -404,7 +414,7 @@ def main(args=None):
     ), "\n\n"
   if args.chart:
     try:
-      generate_chart(
+      output_chart(
         stats, args.filename, args.png, args.light,
         not args.no_dots, not args.no_lines, args.fill
       )

@@ -5,7 +5,7 @@ from nose.tools import assert_equal, assert_raises
 from bpdiag import (
   BpdiagError,
   Measurement, Stats,
-  parse_simple
+  parse_plaintext
 )
 
 
@@ -26,7 +26,7 @@ cases_stats = {
   'pulse_min': 65, 'pulse_max': 72, 'pulse_avg': 68
 }
 
-cases_parse_simple = (
+cases_parse_plaintext = (
   # empty list
   ([], []), ([''], []), (['', '   ', '', ' '], []), (['', '\n  \n', '  ', '\n'], []),
   # one per line
@@ -43,12 +43,12 @@ cases_parse_simple = (
   (['136/83/65, 132/82/70', '144/82/86'], [(136, 83, 65), (132, 82, 70), (144, 82, 86)]),
 )
 
-cases_parse_simple_errors = (
+cases_parse_plaintext_errors = (
   ['asd'], ['136/83/65 132/82/70'], ['136/8365, 132/82/70'], ['136/83/e65'],
   ['136/83/65, w132/82/70'], ['136/83/65, asd, 132/82/70']
 )
 
-cases_parse_simple_entries = (  # data, entries, expected
+cases_parse_plaintext_entries = (  # data, entries, expected
   # empty list
   ([], 1, []), ([], 2, []), ([], 3, []),
   # one line, one token
@@ -126,58 +126,58 @@ def test_stats_none_values():
     assert_equal(d1[attr], d2[attr])
 
 
-def test_parse_simple():
+def test_parse_plaintext():
   # check that parsing returns the expected values:
-  for case, exp in cases_parse_simple:
-    res = parse_simple(case)
+  for case, exp in cases_parse_plaintext:
+    res = parse_plaintext(case)
     assert_equal([m.as_tuple() for m in res], exp)
 
 
-def test_parse_simple_errors():
+def test_parse_plaintext_errors():
   # check that errors are raised correctly:
-  for case in cases_parse_simple_errors:
+  for case in cases_parse_plaintext_errors:
     with assert_raises(BpdiagError):
-      parse_simple(case)
-  for case in cases_parse_simple_errors:
-    parse_simple(case, check=None)
+      parse_plaintext(case)
+  for case in cases_parse_plaintext_errors:
+    parse_plaintext(case, check=None)
 
 
-def test_parse_simple_parseopts():
+def test_parse_plaintext_parseopts():
   # check if pasing options (``seperator`` & ``delimeter``) are working:
   for sep in ('-', '--', ':', ' - '):
-    for case, exp in cases_parse_simple:
+    for case, exp in cases_parse_plaintext:
       new_case = [line.replace('/', sep) for line in case]
-      res = [m.as_tuple() for m in parse_simple(new_case, seperator=sep)]
+      res = [m.as_tuple() for m in parse_plaintext(new_case, seperator=sep)]
       assert_equal(res, exp)
   for deli in ('-', '--', ':', ' - '):
-    for case, exp in cases_parse_simple:
+    for case, exp in cases_parse_plaintext:
       new_case = [line.replace(',', deli) for line in case]
-      res = [m.as_tuple() for m in parse_simple(new_case, delimeter=deli)]
+      res = [m.as_tuple() for m in parse_plaintext(new_case, delimeter=deli)]
       assert_equal(res, exp)
   # check *skip*
   lines = ('123/78/67, - , 123/78/67', '-, 123/78/67, -')
   exp = [(123, 78, 67), (123, 78, 67), (123, 78, 67)]
-  res = [m.as_tuple() for m in parse_simple(lines, skip='-')]
+  res = [m.as_tuple() for m in parse_plaintext(lines, skip='-')]
   assert_equal(res, exp)
 
 
-def test_parse_simple_entries():
+def test_parse_plaintext_entries():
   # check that parsing with ``entries`` set gets the expected results:
-  for data, entries, exp in cases_parse_simple_entries:
-    res = parse_simple(data, entries=entries)
+  for data, entries, exp in cases_parse_plaintext_entries:
+    res = parse_plaintext(data, entries=entries)
     assert_equal(len(res) % entries, 0)
     res = [(m.as_tuple() if m is not None else None) for m in res]
     assert_equal(res, exp)
   # check *skip*
   lines = ('123/78/67, - , 132/87/67', '-, 123/78/67, -')
   exp = [(123, 78, 67), None, None, (123, 78, 67)]
-  res = [m.as_tuple() if m else None for m in parse_simple(lines, skip='-', entries=2)]
+  res = [m.as_tuple() if m else None for m in parse_plaintext(lines, skip='-', entries=2)]
   assert_equal(res, exp)
 
 
-def test_parse_simple_entries_errors():
+def test_parse_plaintext_entries_errors():
   # check that errors on ``entries`` are reported / ignored correctly:
-  for data, entries, exp in cases_parse_simple_entries:
+  for data, entries, exp in cases_parse_plaintext_entries:
     if None in exp:
       with assert_raises(BpdiagError):
-        parse_simple(data, entries=entries, check=True)
+        parse_plaintext(data, entries=entries, check=True)
