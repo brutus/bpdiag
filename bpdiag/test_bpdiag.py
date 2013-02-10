@@ -4,7 +4,7 @@ from nose.tools import assert_equal, assert_raises
 
 from bpdiag import (
   BpdiagError,
-  Measurement, Stats,
+  Measurement, Statistic,
   parse_plaintext
 )
 
@@ -82,14 +82,14 @@ def test_measurement():
 def test_stats():
   # check if calculated correct:
   data = [Measurement(*args, **kwargs) for args, kwargs, exp_dict in cases_measurement]
-  stats = Stats(data)
+  stats = Statistic(data)
   for attr, exp in cases_stats.items():
     assert_equal(getattr(stats, attr), exp)
 
 
 def test_stats_empty():
   # empty data should result in empt stats and not in error:
-  stats = Stats([])
+  stats = Statistic([])
   stats.evaluate_data()
   assert_equal(len(stats.sys), 0)
   assert_equal(len(stats.dia), 0)
@@ -112,8 +112,8 @@ def test_stats_none_values():
   assert_equal(d2[3], None)
   assert_equal(len(d2), len(d1) + 2)
   # get stats from both list
-  d1 = Stats(d1).__dict__
-  d2 = Stats(d2).__dict__
+  d1 = Statistic(d1).__dict__
+  d2 = Statistic(d2).__dict__
   # base list may not be equal due to ``None`` values
   for attr in ('sys', 'dia', 'pulse'):
     assert_equal(len(d2[attr]), len(d1[attr]) + 2)

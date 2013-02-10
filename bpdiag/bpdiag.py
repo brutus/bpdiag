@@ -91,7 +91,7 @@ class Measurement(object):
     return "{0.sys:3}/{0.dia:3}/{0.pulse:3}".format(self)
 
 
-class Stats(object):
+class Statistic(object):
 
   """
   Collects and calculates statistics from *data*.
@@ -408,7 +408,7 @@ def main(args=None):
     data = parse_data(read_files(args.filenames), args)
     print >> sys.stderr, "Parsed {} value(s)...".format(len(data))
     # generate stats
-    stats = Stats(data)
+    stats = Statistic(data)
     if stats:
       print >> sys.stderr, stats_as_string(stats)
     # output: do some stuff
