@@ -6,6 +6,8 @@ General
 
 * Add date & time handling
 
+* Parse only x lines
+
 
 Parsing
 -------
@@ -49,6 +51,8 @@ statistics
 
 * daily min / max / avg
 
+* min / max tuples (sys/dia/pulse)
+
 * values that are too high (> 130/85 70)
 
   * and way to high (> 140/90 100)
@@ -64,5 +68,9 @@ Charts
 ------
 
 * *width* & *height* for charts
+
+* specify wich lines to draw: sys, dia, pulse
+
+* show some lines bold (130/135, 80/85)
 
 * spread chart (min/max area)
