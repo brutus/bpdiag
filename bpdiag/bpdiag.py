@@ -32,6 +32,12 @@ Information on the available parsers (which function to call and which
 arguments betsides the first one are needed) has to be collected in the
 **PARSERS** dictionary.
 
+It's quiete easy to write your own parsers: Just write a function that accepts
+an *iterator* as its first argument and return a *list* of ``Measurement``
+instances with the parsed data. To let **BP Diag** know about your parser you
+also need to to fill the appropriate info into the *PARSERS* dictionary.
+
+
 Dependencies
 ------------
 
