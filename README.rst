@@ -45,11 +45,7 @@ We got the following results::
     :: PULSE.:  60,  99,  69
 
 We can also dump the results to **JSON** with ``--json`` or genrerate a line
-chart from it with ``--chart`` (for more options see below):
-
-.. image:: https://github.com/brutus/bpdiag/blob/master/doc/bp.svg
-   :height: 600
-   :width: 800
+chart from it with ``--chart`` (for more options see below).
 
 
 Features
