@@ -10,6 +10,28 @@ statistics and prints them to *STDERR*. You can export the data (and the
 gathered statistics) to **JSON** (dump to *STDOUT*). And you can also generate
 **SVG** or **PNG** charts from it.
 
+Internals
+---------
+
+The **Measurement** class represent blood preasure measurements. Depending on
+the kind of parser used, it contains various information; at least *SYS*,
+*DIA*, and *PULSE* values.
+
+The **Statistic** class collects all the parsed measurements as a list of
+*Measurement* instances in the *data* attribute. It also calculates some
+statistics over those measurements and makes them available as attributes.
+
+Parsers
+~~~~~~~
+
+The :func:`read_files` function returns an iterater over all non-empty lines
+in all provided files. This is the first argument to each parser. A parser
+iterates over it and returns a list of *Measurement* instances.
+
+Information on the available parsers (which function to call and which
+arguments betsides the first one are needed) has to be collected in the
+**PARSERS** dictionary.
+
 Dependencies
 ------------
 
