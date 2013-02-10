@@ -377,6 +377,7 @@ def get_argument_parser():
 
 
 def read_files(filenames):
+  """Generator that yields every non-empty line of each fiel in *filenames*."""
   for filename in filenames:
     try:
       with open(filename) as fh:
