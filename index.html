@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="bpdiag : a quick script to visualize blood pressure measurements" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>bpdiag</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/brutus/bpdiag">View on GitHub</a>
+
+          <h1 id="project_title">bpdiag</h1>
+          <h2 id="project_tagline">a quick script to visualize blood pressure measurements</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/brutus/bpdiag/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/brutus/bpdiag/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>BP Diag</h1>
+
+<h2>Parses Blood Preasure Statistics</h2>
+
+<p><strong>BP Diag</strong> parses blood pressure statistics from data files, generates some
+statistics and prints them to <em>STDERR</em>. You can export the data (and the
+gathered statistics) to <strong>JSON</strong> (dump to <em>STDOUT</em>). And you can also generate
+<strong>SVG</strong> or <strong>PNG</strong> charts from it::</p>
+
+<pre><code>bpdiag [OPTIONS] [OUTPUT [OUTPUT OPTIONS]].. [PARSER [PARSER OPTIONS]] FILENAME..
+</code></pre>
+
+<p>To see a list of possible command line options run:</p>
+
+<pre><code>bpdiag.py --help
+</code></pre>
+
+<h2>Examples</h2>
+
+<p>Lets say we got a file called <code>bloodpressure.txt</code> containing the following
+values in a simple format. This is a good job for our <em>default parser</em> (there
+are other <strong>parsers</strong>, but more on this later):</p>
+
+<pre><code>136/83/65, 132/82/70
+144/82/86, 137/81/75, -,         143/80/68
+131/82/60, 144/82/64, 136/79/67, 140/80/62
+136/83/68, 138/80/99, -,         133/74/65
+136/79/67, 131/76/64, 135/81/72, 136/75/61
+127/79/72
+</code></pre>
+
+<p>So if we run <strong>BP Diag</strong> over the file like this:</p>
+
+<pre><code>bpdiag.py bloodpressure.txt
+</code></pre>
+
+<p>We got the following results:</p>
+
+<pre><code>Parsed 17 value(s)...
+Statistics (min, max, avg):
+:: SYS...: 127, 144, 136
+:: DIA...:  74,  83,  79
+:: PULSE.:  60,  99,  69
+</code></pre>
+
+<p>We can also dump the results to <strong>JSON</strong> with <code>--json</code> or generate a line
+chart from it with <code>--chart</code> (for more options see below).</p>
+
+<h2>Features</h2>
+
+<h3>Modular Input: Parsers</h3>
+
+<p><strong>Parsers</strong> define how the input from the given files is transformed into
+<em>Measurements</em> instances containing the data for each parsed measurement.</p>
+
+<p><strong>BP Diag</strong> comes with a couple of parsers, but it's easy to write your own if
+they don't fit your needs (just take a look at the source documentation of
+the module).</p>
+
+<h4>Parser: Plaintext</h4>
+
+<p>The <em>plaintext parser</em> is good to grab values from simple text files, like
+copied from a note taking app or whatever. It's for files that just store a
+couple of <em>SYS</em>, <em>DIA</em> and <em>PULSE</em> values.</p>
+
+<p>For each line the <code>--delimiter</code> (default is <code>,</code>) is used to split multiple
+entries on the line. And <code>--separator</code> (default: <code>/</code>) is used to split the
+entries into the <em>SYS</em>, <em>DIA</em> and <em>PULSE</em> values. Entries that just contain the
+<code>--skip</code> string (default: <code>-</code>) are skipped.</p>
+
+<h5>Number of measurements per line</h5>
+
+<p>Per default all values are gathered one after the other. But you can use the
+<code>--entries</code> option to set a fixed number of measurements per line.</p>
+
+<p>What this means is that only that much values are used per line (even if there
+are more) and if a line contains less than <em>entries</em> values, the remaining
+ones are filled with <code>None</code> values. Also values that are the <em>skip</em> string
+are not ignored but stored as a <code>None</code> value too.</p>
+
+<p>This can be helpful in cases where you have a given number of measurements per
+line and you want to keep them aligned even if sometimes a measurement is
+skipped / missing.</p>
+
+<pre><code>bpdiag.py --json --compact --entries 4 bloodpressure.txt
+</code></pre>
+
+<p>Will result in the following JSON:</p>
+
+<div class="highlight"><pre><span class="p">[[</span><span class="mi">136</span><span class="p">,</span><span class="mi">83</span><span class="p">,</span><span class="mi">65</span><span class="p">],[</span><span class="mi">132</span><span class="p">,</span><span class="mi">82</span><span class="p">,</span><span class="mi">70</span><span class="p">],</span><span class="kc">null</span><span class="p">,</span><span class="kc">null</span><span class="p">,[</span><span class="mi">144</span><span class="p">,</span><span class="mi">82</span><span class="p">,</span><span class="mi">86</span><span class="p">],[</span><span class="mi">137</span><span class="p">,</span><span class="mi">81</span><span class="p">,</span><span class="mi">75</span><span class="p">],</span><span class="kc">null</span><span class="p">,[</span><span class="mi">143</span><span class="p">,</span><span class="mi">80</span><span class="p">,</span><span class="mi">68</span><span class="p">],[</span><span class="mi">131</span><span class="p">,</span><span class="mi">82</span><span class="p">,</span><span class="mi">60</span><span class="p">],[</span><span class="mi">144</span><span class="p">,</span><span class="mi">82</span><span class="p">,</span><span class="mi">64</span><span class="p">],[</span><span class="mi">136</span><span class="p">,</span><span class="mi">79</span><span class="p">,</span><span class="mi">67</span><span class="p">],[</span><span class="mi">140</span><span class="p">,</span><span class="mi">80</span><span class="p">,</span><span class="mi">62</span><span class="p">],[</span><span class="mi">136</span><span class="p">,</span><span class="mi">83</span><span class="p">,</span><span class="mi">68</span><span class="p">],[</span><span class="mi">138</span><span class="p">,</span><span class="mi">80</span><span class="p">,</span><span class="mi">99</span><span class="p">],</span><span class="kc">null</span><span class="p">,[</span><span class="mi">133</span><span class="p">,</span><span class="mi">74</span><span class="p">,</span><span class="mi">65</span><span class="p">],[</span><span class="mi">136</span><span class="p">,</span><span class="mi">79</span><span class="p">,</span><span class="mi">67</span><span class="p">],[</span><span class="mi">131</span><span class="p">,</span><span class="mi">76</span><span class="p">,</span><span class="mi">64</span><span class="p">],[</span><span class="mi">135</span><span class="p">,</span><span class="mi">81</span><span class="p">,</span><span class="mi">72</span><span class="p">],[</span><span class="mi">136</span><span class="p">,</span><span class="mi">75</span><span class="p">,</span><span class="mi">61</span><span class="p">],[</span><span class="mi">127</span><span class="p">,</span><span class="mi">79</span><span class="p">,</span><span class="mi">72</span><span class="p">],</span><span class="kc">null</span><span class="p">,</span><span class="kc">null</span><span class="p">,</span><span class="kc">null</span><span class="p">]</span>
+</pre></div>
+
+<h3>Output</h3>
+
+<p>As we already seen, you will always get some statistics-output to <em>STDERR</em>.
+But you can also export the gathered data to a number of formats:</p>
+
+<h4>Export JSON</h4>
+
+<p>There are a couple of ways to do this, but always the JSON dump is written to
+<em>STDOUT</em>, so you can redirect the dump to a file.</p>
+
+<p>You can dump the data as an array of <em>SYS</em>, <em>DIA</em>, <em>PULSE</em> arrays with the <code>--json</code>
+option. Or as an array of objects with the <code>--json-obj</code> option (this will
+include all attributes of the <em>Measurement</em> instances, not just <em>SYS</em>, <em>DIA</em>
+and <em>PULSE</em>). If you want the gathered statistics too, use <code>--json-stats</code>.</p>
+
+<p>There are a couple of options to govern how the dump is formatted, see the
+<code>--help</code> output for info on that.</p>
+
+<h4>Export Chart</h4>
+
+<p>To generate <em>SVG</em> charts, you need to have <a href="http://pygal.org/">PyGal</a> installed (see below). Other
+than that, just use the <code>--chart</code> option to have a chart called <code>bp.svg</code>
+generated in your current directory. There are more options to this, take a
+look at the <code>--help</code> output.</p>
+
+<p>Instead of the interactive SVG charts you can use <em>PNG</em> as output format. Just
+use the <code>--png</code> option along with <code>--chart</code>. You need a couple more
+dependencies for that though, take a look below.</p>
+
+<h2>Install</h2>
+
+<p>You can install <strong>BP Diag</strong> with <a href="http://www.pip-installer.org/en/latest/index.html">pip</a> or from source.</p>
+
+<p><strong>Install with pip</strong></p>
+
+<p><a href="http://www.pip-installer.org/en/latest/index.html">pip</a> is "*a tool for installing and managing Python packages*". If you don't
+have it installed, see the <a href="http://www.pip-installer.org/en/latest/installing.html">pip install instructions</a>:</p>
+
+<pre><code>pip install --user bpdiag
+</code></pre>
+
+<p><strong>Install from source</strong></p>
+
+<p>You can fetch the latest <a href="https://github.com/brutus/bpdiag/zipball/master">sourceball</a> from github and unpack it, or just clone
+this repository: <code>git clone git://github.com/brutus/bpdiag</code>. If you
+got the source, change into the directory and use <code>setup.py</code>:</p>
+
+<pre><code>python setup.py install
+</code></pre>
+
+<h3>Dependencies</h3>
+
+<p><a href="http://pygal.org/">PyGal</a> is used to generate the charts. If you want to generate charts,
+you need to install it. With <a href="http://www.pip-installer.org/en/latest/index.html">pip</a> it's as easy as this:</p>
+
+<pre><code>pip install --user pygal
+</code></pre>
+
+<p>If you want to export to PNG files, you need <a href="http://cairosvg.org/">CairoSVG</a>, <a href="http://packages.python.org/tinycss/">tinycss</a> and
+<a href="http://packages.python.org/cssselect/">cssselect</a> too. You can install them like this:</p>
+
+<pre><code>pip install --user CairoSVG tinycss cssselect
+</code></pre>
+
+<h2>Bugs  and Contribution</h2>
+
+<p><strong>BP Diag</strong> is at home at: <a href="https://github.com/brutus/bpdiag/">https://github.com/brutus/bpdiag/</a></p>
+
+<p>If you want to run the test cases, see that you got <a href="https://nose.readthedocs.org/en/latest/">nose</a> installed and run
+<code>nosetests</code> from the <code>bpdiag</code> directory (the one containing the module).
+If you got <strong>bpdiag</strong> already installed, run them like this: <code>nosetest
+test_bpdiag</code>.</p>
+
+<p>If something fails, please get in touch.</p>
+
+<p>If you find any bugs, issues or anything, please use the <a href="https://github.com/brutus/bpdiag/issues">issue tracker</a>.</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">bpdiag maintained by <a href="https://github.com/brutus">brutus</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
