@@ -149,7 +149,7 @@ You can fetch the latest sourceball_ from github and unpack it, or just clone
 this repository: ``git clone git://github.com/brutus/bpdiag``. If you
 got the source, change into the directory and use ``setup.py``::
 
-    python setup.py install
+    python setup.py --user install
 
 Dependencies
 ------------
