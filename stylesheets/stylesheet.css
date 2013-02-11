@@ -169,9 +169,6 @@ pre, code {
   border-radius: 2px;
   -moz-border-radius: 2px;
   -webkit-border-radius: 2px;
-
-
-
 }
 
 pre {
@@ -185,6 +182,7 @@ code {
   padding: 3px;
   margin: 0 3px;
   box-shadow: 0 0 10px rgba(0,0,0,.1);
+  white-space: nowrap;
 }
 
 pre code {
