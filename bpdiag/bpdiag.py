@@ -5,7 +5,7 @@
 BP Diag
 =======
 
-**BP Diag** parses blood preasure statistics from data files, generates some
+**BP Diag** parses blood pressure statistics from data files, generates some
 statistics and prints them to *STDERR*. You can export the data (and the
 gathered statistics) to **JSON** (dump to *STDOUT*). And you can also generate
 **SVG** or **PNG** charts from it.
@@ -13,7 +13,7 @@ gathered statistics) to **JSON** (dump to *STDOUT*). And you can also generate
 Internals
 ---------
 
-The **Measurement** class represent blood preasure measurements. Depending on
+The **Measurement** class represent blood pressure measurements. Depending on
 the kind of parser used, it contains various information; at least *SYS*,
 *DIA*, and *PULSE* values.
 
@@ -24,16 +24,16 @@ statistics over those measurements and makes them available as attributes.
 Parsers
 ~~~~~~~
 
-The :func:`read_files` function returns an iterater over all non-empty lines
+The :func:`read_files` function returns an iterator over all non-empty lines
 in all provided files. This is the first argument to each parser. A parser
 iterates over it and returns a list of *Measurement* instances.
 
 Information on the available parsers (which function to call and which
-arguments betsides the first one are needed) has to be collected in the
+arguments besides the first one are needed) has to be collected in the
 **PARSERS** dictionary.
 
-It's quiete easy to write your own parsers: Just write a function that accepts
-an *iterator* as its first argument and return a *list* of ``Measurement``
+It's easy to write your own parsers: Just write a function that accepts an
+*iterator* as its first argument and return a *list* of ``Measurement``
 instances with the parsed data. To let **BP Diag** know about your parser you
 also need to to fill the appropriate info into the *PARSERS* dictionary.
 
@@ -80,7 +80,7 @@ except ImportError:
 PARSERS = {
   'plain': {
     'func': 'parse_plaintext',
-    'args': ('entries', 'skip', 'seperator', 'delimeter', 'check')
+    'args': ('entries', 'skip', 'separator', 'DELIMITER', 'check')
   },
 }
 
@@ -92,10 +92,10 @@ class BpdiagError(Exception):
 class Measurement(object):
 
   """
-  Represents a blood preasure measurement.
+  Represents a blood pressure measurement.
 
-  The needed attributes are *sys* (systolic, maximum), *dia* (diastolic,
-  minimum) - both in mm Hg - and *pulse* (arterial pulse per minute).
+  The needed attributes are *SYS* (systolic, maximum), *DIA* (diastolic,
+  minimum) - both in mm Hg - and *PULSE* (arterial pulse per minute).
 
   You can set additional arbitrary attributes trough keywords, eg: date, time,
   or flags for irregular heartbeat or excessive movement, etc.
@@ -174,20 +174,20 @@ class Statistic(object):
 
 def parse_plaintext(
   lines,
-  entries=0, skip='-', seperator='/', delimeter=',', check=False
+  entries=0, skip='-', separator='/', delimiter=',', check=False
 ):
   """
   Return a list of :cls:`Measurement` instances parsed from *lines*.
 
   *lines* can contain any number of sys/dia/pulse strings on each line.
 
-  For each line **delimeter** is used to split multiple tokens on the line.
-  And **seperator** is used to split the tokens into the sys, dia and
-  pulse values.
+  For each line **delimiter** is used to split multiple tokens on the line.
+  And **separator** is used to split the tokens into the *SYS*, *DIA* and
+  *PULSE* values.
 
-  If **entries** is set to a value greather than 0, only that much tokens are
-  used per line (even if there are more). If there are not enogh tokens on the
-  line (less than *entries*), ``None`` values are used for those. If
+  If **entries** is set to a value greater than 0, only that much tokens are
+  used per line (even if there are more). If there are not enough tokens on
+  the line (less than *entries*), ``None`` values are used for those. If
   **skipped** is set too, entries that consist only of this string are also
   ignored and stored as ``None`` values.
 
@@ -199,12 +199,12 @@ def parse_plaintext(
   data = []
   # iterate over all non-empty lines
   for line in itertools.ifilter(None, (line.strip() for line in lines)):
-    tokens = line.split(delimeter)  # get each token from the line
+    tokens = line.split(delimiter)  # get each token from the line
     # if *entries* is set, parse that much tokens, else parse all:
     for i in range(entries if entries else len(tokens)):
       try:
         token = tokens[i].strip()
-        data.append(Measurement(*token.split(seperator)))
+        data.append(Measurement(*token.split(separator)))
       except IndexError:
         # ``None`` for missing entries on the line if *entries*
         if not check and entries:
@@ -213,7 +213,7 @@ def parse_plaintext(
         if check is None:
           continue
         msg = "not enough measurements on line, needed {} got {} from '{}'"
-        msg = msg.format(entries, len(line.split(delimeter)), line)
+        msg = msg.format(entries, len(line.split(delimiter)), line)
         raise BpdiagError(msg)
       except TypeError:
         # skipped entry or trailing whitespace?
@@ -228,13 +228,13 @@ def parse_plaintext(
         if check is None:
           continue
         msg = "wrong number of values in token, needed 3 got {} from '{}'"
-        msg = msg.format(len(token.split(seperator)), token)
+        msg = msg.format(len(token.split(separator)), token)
         raise BpdiagError(msg)
       except ValueError:
         if check is None:
           continue
         msg = "can't convert all values to INT: SYS: '{}', DIA: '{}', PULSE: '{}'"
-        msg = msg.format(*token.split(seperator))
+        msg = msg.format(*token.split(separator))
         raise BpdiagError(msg)
   return data
 
@@ -350,7 +350,7 @@ def get_argument_parser():
   g_json.add_argument(
     '--compact', action='store_const', dest='separators',
     const=(',', ':'), default=(', ', ': '),
-    help="skip emty spaces after `,` and `:`"
+    help="skip empty spaces after `,` and `:`"
   )
   g_json.add_argument(
     '--sort', action='store_true',
@@ -360,8 +360,8 @@ def get_argument_parser():
   g_plain = ap.add_argument_group(
     '[PARSER] plain',
     "Each line of a file is parsed for one or more SYS, DIA and PULSE value(s). "
-    "A *seperator* and a *delimeter* is used for that. The *seperator* "
-    "seperates the three values and the *delimeter* multiple entires on a line."
+    "A *separator* and a *delimiter* is used for that. The *separator* "
+    "separates the three values and the *delimiter* multiple entires on a line."
   )
   g_plain.add_argument(
     '-e', '--entries', metavar='INT', type=int, default=0,
@@ -372,18 +372,18 @@ def get_argument_parser():
     help="denotes skipped values (default: '%(default)s')"
   )
   g_plain.add_argument(
-    '--delimeter', metavar='STRING', default=',',
+    '--delimiter', metavar='STRING', default=',',
     help="splits multiple measures on one line (default: '%(default)s')"
   )
   g_plain.add_argument(
-    '--seperator', metavar='STRING', default='/',
+    '--separator', metavar='STRING', default='/',
     help="splits measure string to sys/dia/pulse values (default: '%(default)s')"
   )
   return ap
 
 
 def read_files(filenames):
-  """Generator that yields every non-empty line of each fiel in *filenames*."""
+  """Generator that yields every non-empty line of each file in *filenames*."""
   for filename in filenames:
     try:
       with open(filename) as fh:
@@ -398,7 +398,7 @@ def parse_data(lines, args):
   """
   Return the results of the given parser function.
 
-  Use the global **PARSERS** data and *args* to determin wich parser to
+  Use the global **PARSERS** data and *args* to determine which parser to
   call and which arguments to use (as keywords). *lines* will always be the
   first positional argument to the call.
 
@@ -427,11 +427,11 @@ def main(args=None):
   *statistics* and print the requested *output*.
 
   All arguments are parsed from **args**. If *args* is ``None``, ``sys.argv``
-  is used (the commandline).
+  is used (the command line).
 
   """
   try:
-    # parse commandline
+    # parse command line
     args = get_argument_parser().parse_args(args)
     # parse data from all given files (iterative) and build statistics
     stats = Statistic(parse_data(read_files(args.filenames), args))

@@ -88,7 +88,7 @@ def test_stats():
 
 
 def test_stats_empty():
-  # empty data should result in empt stats and not in error:
+  # empty data should result in empty stats and not in error:
   stats = Statistic([])
   stats.evaluate_data()
   assert_equal(len(stats.sys), 0)
@@ -143,16 +143,16 @@ def test_parse_plaintext_errors():
 
 
 def test_parse_plaintext_parseopts():
-  # check if pasing options (``seperator`` & ``delimeter``) are working:
+  # check if parsing options (``separator`` & ``delimiter``) are working:
   for sep in ('-', '--', ':', ' - '):
     for case, exp in cases_parse_plaintext:
       new_case = [line.replace('/', sep) for line in case]
-      res = [m.as_tuple() for m in parse_plaintext(new_case, seperator=sep)]
+      res = [m.as_tuple() for m in parse_plaintext(new_case, separator=sep)]
       assert_equal(res, exp)
   for deli in ('-', '--', ':', ' - '):
     for case, exp in cases_parse_plaintext:
       new_case = [line.replace(',', deli) for line in case]
-      res = [m.as_tuple() for m in parse_plaintext(new_case, delimeter=deli)]
+      res = [m.as_tuple() for m in parse_plaintext(new_case, delimiter=deli)]
       assert_equal(res, exp)
   # check *skip*
   lines = ('123/78/67, - , 123/78/67', '-, 123/78/67, -')
