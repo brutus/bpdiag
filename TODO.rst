@@ -67,8 +67,6 @@ Output
 Charts
 ------
 
-* *width* & *height* for charts
-
 * specify wich lines to draw: sys, dia, pulse
 
 * show some lines bold (130/135, 80/85)

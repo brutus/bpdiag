@@ -241,6 +241,7 @@ def parse_plaintext(
 
 def output_chart(
   stats, filename='bpdiag.svg', png=False, light=False,
+  width=False, height=False,
   dots=True, lines=True, fill=False
 ):
   """
@@ -258,9 +259,12 @@ def output_chart(
 
   """
   style = LightStyle if light else DarkStyle
-  chart = pygal.Line(
-    show_dots=dots, stroke=lines, fill=fill, style=style
-  )
+  options = {'show_dots': dots, 'stroke': lines, 'fill': fill, 'style': style}
+  if width:
+    options['width'] = width
+  if height:
+    options['height'] = height
+  chart = pygal.Line(**options)
   chart.add('sys', stats.sys)
   chart.add('dia', stats.dia)
   chart.add('pulse', stats.pulse)
@@ -270,6 +274,7 @@ def output_chart(
     chart.render_to_png(filename)
   else:
     chart.render_to_file(filename)
+  return filename
 
 
 def get_argument_parser():
@@ -328,6 +333,14 @@ def get_argument_parser():
   g_chart.add_argument(
     '--light', action='store_true',
     help="render to a white background"
+  )
+  g_chart.add_argument(
+    '--width', type=int, metavar='PIXEL',
+    help="set width of output file"
+  )
+  g_chart.add_argument(
+    '--height', type=int, metavar='PIXEL',
+    help="set height of output file"
   )
   g_chart.add_argument(
     '--no-dots', action='store_true',
@@ -455,11 +468,12 @@ def main(args=None):
         indent=args.indent, separators=args.separators, sort_keys=args.sort
       ), "\n\n"
     if args.chart:
-      output_chart(
+      fn = output_chart(
         stats, args.filename, args.png, args.light,
+        args.width, args.height,
         not args.no_dots, not args.no_lines, args.fill
       )
-      print >> sys.stderr, "Generated chart: '{}'".format(args.filename)
+      print >> sys.stderr, "Generated chart: '{}'".format(fn)
   except BpdiagError as e:
     print >> sys.stderr,\
       "[ERROR] while parsing:", e
