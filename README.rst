@@ -47,6 +47,8 @@ We got the following results::
 We can also dump the results to **JSON** with ``--json`` or generate a line
 chart from it with ``--chart`` (for more options see below).
 
+.. image:: http://brutus.github.com/bpdiag/images/bp.png
+
 
 Features
 ========
