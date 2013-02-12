@@ -44,7 +44,7 @@ global **PARSERS** dictionary:
 
 The *func* key points to a string containing the name of the function to call.
 *args* points to a list of strings; the names to the arguments the function
-needs. And the *exta* key points to a dictonary containing additional kwargs
+needs. And the *extra* key points to a dictionary containing additional kwargs
 for the function.
 
 It's easy to write your own parsers: Just write a function that accepts an
@@ -95,7 +95,11 @@ except ImportError:
 PARSERS = {
   'plain': {
     'func': 'parse_plaintext',
-    'args': ('entries', 'skip', 'separator', 'DELIMITER', 'check')
+    'args': ('entries', 'skip', 'separator', 'delimiter', 'check')
+  },
+  'json': {
+    'func': 'parse_json',
+    'args': ('as_obj', 'check'),
   },
 }
 
@@ -254,6 +258,36 @@ def parse_plaintext(
   return data
 
 
+def parse_json(lines, as_obj=False, check=False):
+  """
+  Return a list of :cls:`Measurement` instances parsed from *lines*.
+
+  *lines* need to contain a valid JSON array.
+
+  .. note::
+
+    This is not an iterator, all results - the whole list - is read and
+    returned at once.
+
+  If *as_dict* is set, the attributes of each object in the JSON array are
+  passed  to :cls:`Measurement` as *kwargs*. If not, each JSON object is
+  treated as an array with the SYS/DIA/PULSE values.
+
+  If the parsing fails, an error is raised, except if *check* is ``None``,
+  then an empty list will be returned instead.
+
+  """
+  try:
+    if as_obj:
+      return [Measurement(**entry) for entry in json.loads(''.join(lines))]
+    else:
+      return [Measurement(*entry) for entry in json.loads(''.join(lines))]
+  except ValueError as e:
+    if check is None:
+      return []
+    raise BpdiagError(str(e))
+
+
 def output_chart(
   stats, filename='bpdiag.svg', png=False, light=False,
   width=False, height=False,
@@ -385,27 +419,38 @@ def get_argument_parser():
     help="sort JSON dicts by key"
   )
   # parser :: plain
-  g_plain = ap.add_argument_group(
+  g_p_plain = ap.add_argument_group(
     '[PARSER] plain',
     "Each line of a file is parsed for one or more SYS, DIA and PULSE value(s). "
-    "A *separator* and a *delimiter* is used for that. The *separator* "
+    "A *separator* and a *delimiter* are used for that. The *separator* "
     "separates the three values and the *delimiter* multiple entires on a line."
   )
-  g_plain.add_argument(
+  g_p_plain.add_argument(
     '-e', '--entries', metavar='INT', type=int, default=0,
     help="number of measures per line; 0 = all (default: '%(default)s')"
   )
-  g_plain.add_argument(
+  g_p_plain.add_argument(
     '--skip', metavar='STRING', default='-',
     help="denotes skipped values (default: '%(default)s')"
   )
-  g_plain.add_argument(
+  g_p_plain.add_argument(
     '--delimiter', metavar='STRING', default=',',
     help="splits multiple measures on one line (default: '%(default)s')"
   )
-  g_plain.add_argument(
+  g_p_plain.add_argument(
     '--separator', metavar='STRING', default='/',
     help="splits measure string to sys/dia/pulse values (default: '%(default)s')"
+  )
+  # parser :: json
+  g_p_json = ap.add_argument_group(
+    '[PARSER] json',
+    "Parses one JSON array from all given files. Note: this might not work "
+    "well with multiple JSON objects. Each entry in the array needs to be an "
+    "array with three values for SYS, DIA and PULSE."
+  )
+  g_p_json.add_argument(
+    '--as-obj', action='store_true',
+    help="entries are JSON objects instead of arrays"
   )
   return ap
 
@@ -436,6 +481,7 @@ def parse_data(lines, args):
   kwargs = {
     name: getattr(args, name) for name in parser['args'] if name in args
   }
+  kwargs.update(parser.get('extra', {}))
   return func(lines, **kwargs)
 
 

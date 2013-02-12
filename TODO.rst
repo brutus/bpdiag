@@ -12,8 +12,6 @@ General
 Parsing
 -------
 
-* Add a JSON parser
-
 * Add a RegEx Parser
 
   Each line will be parsed by a given regular expression, eg::

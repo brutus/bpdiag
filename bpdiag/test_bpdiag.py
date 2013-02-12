@@ -1,11 +1,13 @@
 # -*- coding: UTF-8 -*-
 
+import json
+
 from nose.tools import assert_equal, assert_raises
 
 from bpdiag import (
   BpdiagError,
   Measurement, Statistic,
-  parse_plaintext
+  parse_plaintext, parse_json
 )
 
 
@@ -181,3 +183,35 @@ def test_parse_plaintext_entries_errors():
     if None in exp:
       with assert_raises(BpdiagError):
         parse_plaintext(data, entries=entries, check=True)
+
+
+def test_parse_json():
+  # check empty list
+  with assert_raises(BpdiagError):
+    parse_json((), check=False)
+  with assert_raises(BpdiagError):
+    parse_json((), check=True)
+  res = parse_json((), check=None)
+  assert_equal(res, [])
+  # test data
+  json_line = '[[136,83,65],[132,82,70],[144,82,86],[137,81,75],[143,80,68],'\
+    '[131,82,60],[144,82,64],[136,79,67],[140,80,62],[136,83,68],[138,80,99],'\
+    '[133,74,65],[136,79,67],[131,76,64],[135,81,72],[136,75,61],[127,79,72]]'
+  json_lines = (
+    '[[136,83,65],[132,82,70],[144,82,86],[137,81,75],[143,80,68],',
+    '[131,82,60],[144,82,64],[136,', '79,67],[140,80,62],[136,83,68],',
+    '[138,80,99],', '[133,74,65],[136,79,67],[131,76,64],[135,81,72],',
+    '[136,75,61],[127,79,72]]'
+  )
+  exp = [tuple(l) for l in json.loads(json_line)]
+  # check JSON tuples
+  res = parse_json(json_line)
+  assert_equal([m.as_tuple() for m in res], exp)
+  res = parse_json(json_lines)
+  assert_equal([m.as_tuple() for m in res], exp)
+  # check JSON dics
+  bp_dict = [Measurement(*m).as_dict() for m in exp]
+  json_obj_str = json.dumps(bp_dict)
+  res = parse_json(json_obj_str, as_obj=True)
+  assert_equal([m.as_dict() for m in res], bp_dict)
+  assert_equal([m.as_tuple() for m in res], exp)
