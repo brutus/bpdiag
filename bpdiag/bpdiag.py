@@ -5,32 +5,47 @@
 BP Diag
 =======
 
-**BP Diag** parses blood pressure statistics from data files, generates some
-statistics and prints them to *STDERR*. You can export the data (and the
-gathered statistics) to **JSON** (dump to *STDOUT*). And you can also generate
-**SVG** or **PNG** charts from it.
+**BP Diag** parses *blood pressure statistics* from data files. It generates
+some statistics and prints them to *STDERR*. You can export the collected data
+(and the gathered statistics) to **JSON** (dump to *STDOUT*). And you can also
+generate **SVG** or **PNG** charts from it.
+
 
 Internals
 ---------
 
+Measurements
+~~~~~~~~~~~~
+
 The **Measurement** class represent blood pressure measurements. Depending on
 the kind of parser used, it contains various information; at least *SYS*,
-*DIA*, and *PULSE* values.
+*DIA*, and *PULSE* values (as integers).
+
+Statistics
+~~~~~~~~~~
 
 The **Statistic** class collects all the parsed measurements as a list of
 *Measurement* instances in the *data* attribute. It also calculates some
 statistics over those measurements and makes them available as attributes.
 
+If you want to gather additional statistics, just subclass this and expand at
+will.
+
 Parsers
 ~~~~~~~
 
-The :func:`read_files` function returns an iterator over all non-empty lines
-in all provided files. This is the first argument to each parser. A parser
-iterates over it and returns a list of *Measurement* instances.
+The :func:`read_files` function returns an iterator over all lines in all
+provided files. This is the first argument to each parser. A parser iterates
+over it and returns a list of *Measurement* instances.
 
 Information on the available parsers (which function to call and which
 arguments besides the first one are needed) has to be collected in the
-**PARSERS** dictionary.
+global **PARSERS** dictionary:
+
+The *func* key points to a string containing the name of the function to call.
+*args* points to a list of strings; the names to the arguments the function
+needs. And the *exta* key points to a dictonary containing additional kwargs
+for the function.
 
 It's easy to write your own parsers: Just write a function that accepts an
 *iterator* as its first argument and return a *list* of ``Measurement``
@@ -396,7 +411,7 @@ def get_argument_parser():
 
 
 def read_files(filenames):
-  """Generator that yields every non-empty line of each file in *filenames*."""
+  """Generator that yields every line of each file in *filenames*."""
   for filename in filenames:
     try:
       with open(filename) as fh:

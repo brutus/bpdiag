@@ -6,10 +6,10 @@ BP Diag
 Parses Blood Pressure Statistics
 --------------------------------
 
-**BP Diag** parses *blood pressure statistics* from data files, generates some
-statistics and prints them to *STDERR*. You can export the data (and the
-gathered statistics) to **JSON** (dump to *STDOUT*). And you can also generate
-**SVG** or **PNG** charts from it::
+**BP Diag** parses *blood pressure statistics* from data files. It generates
+some statistics and prints them to *STDERR*. You can export the collected data
+(and the gathered statistics) to **JSON** (dump to *STDOUT*). And you can also
+generate **SVG** or **PNG** charts from it.::
 
     bpdiag [OPTIONS] [OUTPUT [OUTPUT OPTIONS]].. [PARSER [PARSER OPTIONS]] FILENAME..
 
