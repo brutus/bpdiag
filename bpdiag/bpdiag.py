@@ -403,7 +403,7 @@ def read_files(filenames):
         for line in fh:
           yield line
     except IOError:
-      print >> sys.stderr, "WARN: Can't read from '{}'".format(filename)
+      print >> sys.stderr, "[WARN]: Can't read from '{}'".format(filename)
       continue
 
 
