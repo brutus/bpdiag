@@ -27,10 +27,10 @@
 
 <h2>Parses Blood Pressure Statistics</h2>
 
-<p><strong>BP Diag</strong> parses blood pressure statistics from data files, generates
-some statistics and prints them to <em>STDERR</em>. You can export the data
-(and the gathered statistics) to <strong>JSON</strong> (dump to <em>STDOUT</em>). And you
-can also generate <strong>SVG</strong> or <strong>PNG</strong> charts from it:</p>
+<p><strong>BP Diag</strong> parses <em>blood pressure statistics</em> from data files,
+generates some statistics and prints them to <em>STDERR</em>. You can export
+the data (and the gathered statistics) to <strong>JSON</strong> (dump to <em>STDOUT</em>).
+And you can also generate <strong>SVG</strong> or <strong>PNG</strong> charts from it:</p>
 <div class="highlight"><pre><code class="text">bpdiag [OPTIONS] [OUTPUT [OUTPUT OPTIONS]].. [PARSER [PARSER OPTIONS]] FILENAME..
 </code></pre></div>
 <p>To see a list of possible command line options run:</p>
@@ -60,7 +60,8 @@ Statistics (min, max, avg):
 </code></pre></div>
 <p>We can also dump the results to <strong>JSON</strong> with <code>--json</code> or generate a
 line chart from it with <code>--chart</code> (for more options see below).</p>
-
+<div class="highlight"><pre><code class="json"><span class="p">[[</span><span class="mi">136</span><span class="p">,</span><span class="mi">83</span><span class="p">,</span><span class="mi">65</span><span class="p">],[</span><span class="mi">132</span><span class="p">,</span><span class="mi">82</span><span class="p">,</span><span class="mi">70</span><span class="p">],[</span><span class="mi">144</span><span class="p">,</span><span class="mi">82</span><span class="p">,</span><span class="mi">86</span><span class="p">],[</span><span class="mi">137</span><span class="p">,</span><span class="mi">81</span><span class="p">,</span><span class="mi">75</span><span class="p">],[</span><span class="mi">143</span><span class="p">,</span><span class="mi">80</span><span class="p">,</span><span class="mi">68</span><span class="p">],[</span><span class="mi">131</span><span class="p">,</span><span class="mi">82</span><span class="p">,</span><span class="mi">60</span><span class="p">],[</span><span class="mi">144</span><span class="p">,</span><span class="mi">82</span><span class="p">,</span><span class="mi">64</span><span class="p">],[</span><span class="mi">136</span><span class="p">,</span><span class="mi">79</span><span class="p">,</span><span class="mi">67</span><span class="p">],[</span><span class="mi">140</span><span class="p">,</span><span class="mi">80</span><span class="p">,</span><span class="mi">62</span><span class="p">],[</span><span class="mi">136</span><span class="p">,</span><span class="mi">83</span><span class="p">,</span><span class="mi">68</span><span class="p">],[</span><span class="mi">138</span><span class="p">,</span><span class="mi">80</span><span class="p">,</span><span class="mi">99</span><span class="p">],[</span><span class="mi">133</span><span class="p">,</span><span class="mi">74</span><span class="p">,</span><span class="mi">65</span><span class="p">],[</span><span class="mi">136</span><span class="p">,</span><span class="mi">79</span><span class="p">,</span><span class="mi">67</span><span class="p">],[</span><span class="mi">131</span><span class="p">,</span><span class="mi">76</span><span class="p">,</span><span class="mi">64</span><span class="p">],[</span><span class="mi">135</span><span class="p">,</span><span class="mi">81</span><span class="p">,</span><span class="mi">72</span><span class="p">],[</span><span class="mi">136</span><span class="p">,</span><span class="mi">75</span><span class="p">,</span><span class="mi">61</span><span class="p">],[</span><span class="mi">127</span><span class="p">,</span><span class="mi">79</span><span class="p">,</span><span class="mi">72</span><span class="p">]]</span>
+</code></pre></div>
 <p><img src="http://brutus.github.com/bpdiag/images/bp.png" alt="image"></p>
 
 <h3>Features</h3>
@@ -68,8 +69,8 @@ line chart from it with <code>--chart</code> (for more options see below).</p>
 <h4>Modular Input: Parsers</h4>
 
 <p><strong>Parsers</strong> define how the input from the given files is transformed
-into <em>Measurements</em> instances containing the data for each parsed
-measurement.</p>
+into instances of the <em>Measurements</em> class. Those contain containing the
+data for each parsed measurement.</p>
 
 <p><strong>BP Diag</strong> comes with a couple of parsers, but it&#39;s easy to write your
 own if they don&#39;t fit your needs (just take a look at the source
@@ -94,11 +95,12 @@ the <code>--entries</code> option to set a fixed number of measurements per line
 <p>What this means is that only that much values are used per line (even if
 there are more) and if a line contains less than <em>entries</em> values, the
 remaining ones are filled with <code>None</code> values. Also values that are the
-<em>skip</em> string are not ignored but stored as a None value too.</p>
+<em>skip</em> string are not ignored, but stored as a None value too.</p>
 
 <p>This can be helpful in cases where you have a given number of
 measurements per line and you want to keep them aligned even if
-sometimes a measurement is skipped / missing.:</p>
+sometimes a measurement is skipped / missing (eg. because you take three
+measures a day and keep them on a line).:</p>
 <div class="highlight"><pre><code class="text">bpdiag.py --json --compact --entries 4 bloodpressure.txt
 </code></pre></div>
 <p>Will result in the following JSON:</p>
