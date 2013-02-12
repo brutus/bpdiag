@@ -6,7 +6,7 @@ BP Diag
 Parses Blood Pressure Statistics
 --------------------------------
 
-**BP Diag** parses blood pressure statistics from data files, generates some
+**BP Diag** parses *blood pressure statistics* from data files, generates some
 statistics and prints them to *STDERR*. You can export the data (and the
 gathered statistics) to **JSON** (dump to *STDOUT*). And you can also generate
 **SVG** or **PNG** charts from it::
@@ -47,6 +47,10 @@ We got the following results::
 We can also dump the results to **JSON** with ``--json`` or generate a line
 chart from it with ``--chart`` (for more options see below).
 
+.. code:: json
+
+  [[136,83,65],[132,82,70],[144,82,86],[137,81,75],[143,80,68],[131,82,60],[144,82,64],[136,79,67],[140,80,62],[136,83,68],[138,80,99],[133,74,65],[136,79,67],[131,76,64],[135,81,72],[136,75,61],[127,79,72]]
+
 .. image:: http://brutus.github.com/bpdiag/images/bp.png
 
 
@@ -57,7 +61,8 @@ Modular Input: Parsers
 ----------------------
 
 **Parsers** define how the input from the given files is transformed into
-*Measurements* instances containing the data for each parsed measurement.
+instances of the *Measurements* class. Those contain containing the data for
+each parsed measurement.
 
 **BP Diag** comes with a couple of parsers, but it's easy to write your own if
 they don't fit your needs (just take a look at the source documentation of
@@ -84,11 +89,12 @@ Per default all values are gathered one after the other. But you can use the
 What this means is that only that much values are used per line (even if there
 are more) and if a line contains less than *entries* values, the remaining
 ones are filled with ``None`` values. Also values that are the *skip* string
-are not ignored but stored as a `None` value too.
+are not ignored, but stored as a `None` value too.
 
 This can be helpful in cases where you have a given number of measurements per
 line and you want to keep them aligned even if sometimes a measurement is
-skipped / missing.::
+skipped / missing (eg. because you take three measures a day and keep them on
+a line).::
 
     bpdiag.py --json --compact --entries 4 bloodpressure.txt
 
