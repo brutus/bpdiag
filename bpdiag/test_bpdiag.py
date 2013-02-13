@@ -9,7 +9,7 @@ from nose.tools import assert_equal, assert_raises
 from bpdiag import (
   BpdiagError,
   Measurement, Statistic,
-  parse_plaintext, parse_json
+  parse_plaintext, parse_json, parse_regex
 )
 
 
@@ -200,3 +200,66 @@ def test_parse_json():
     parse_json((), check=True)
   res = parse_json((), check=None)
   assert_equal(res, [])
+
+
+def test_parse_regex():
+  # ### check that EMPTY list return empty lists:
+  ret = parse_regex([])
+  assert_equal(ret, [])
+  # + and so do only empty lines:
+  assert_equal(parse_regex(['', '']), [])
+  # ### check ERROR cases:
+  # + line won't match (check)
+  cases_wrong_lines = (
+    # lines, expected result if *check* is *None*
+    (['asd'], [None]),
+    (['', 'xxxx'], [None]),  # empty lines get filterted
+    (['123-45/12', '123 - 23 - 1234'], [None, None]),
+  )
+  for lines, exp_if_nocheck in cases_wrong_lines:
+    with assert_raises(BpdiagError):
+      parse_regex(lines, check=True)
+    with assert_raises(BpdiagError):
+      parse_regex(lines, check=False)
+    res = parse_regex(lines, check=None)
+    assert_equal(res, exp_if_nocheck)
+  # + missing SYS, ARG and / or PULSE
+  cases_missing_kwarg = (
+    (ur'^30', ['3070']),
+  )
+  for regex, lines in cases_missing_kwarg:
+    with assert_raises(BpdiagError):
+      parse_regex(lines, regex)
+  # ### check correct parsing
+  cases = (
+    (
+      ['123/78/65'],
+      [{'sys': 123, 'dia': 78, 'pulse': 65}, ]
+    ),
+    (
+      ['123-78-65', '125 /79 / 68'],
+      [
+        {'sys': 123, 'dia': 78, 'pulse': 65},
+        {'sys': 125, 'dia': 79, 'pulse': 68},
+      ]
+    ),
+    (
+      ['123/78/65', '', '125 / 79 / 68'],
+      [
+        {'sys': 123, 'dia': 78, 'pulse': 65},
+        {'sys': 125, 'dia': 79, 'pulse': 68},
+      ]
+    ),
+    (
+      ['2013-01-02 123/78/65', '2013-01-02 13:12 125/79/68'],
+      [
+        {'sys': 123, 'dia': 78, 'pulse': 65, 'date': '2013-01-02'},
+        {'sys': 125, 'dia': 79, 'pulse': 68, 'date': '2013-01-02', 'time': '13:12'},
+      ]
+    ),
+  )
+  for lines, exp_dicts in cases:
+    res = parse_regex(lines)
+    for res_measurement, exp_dict in zip(res, exp_dicts):
+      for k, v in exp_dict.items():
+        assert_equal(getattr(res_measurement, k), v)

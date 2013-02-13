@@ -81,6 +81,7 @@ import sys
 import argparse
 import json
 import itertools
+import re
 
 try:
   import pygal
@@ -109,6 +110,11 @@ PARSERS = {
     'func': 'parse_json',
     'args': ('as_obj', 'check'),
   },
+  'regex': {
+    'func': 'parse_regex',
+    'args': ('check', ),
+    'def_regex': ur'\b((?P<date>\d{4}-\d{1,2}-\d{1,2})\s+)?((?P<time>\d{1,2}:\d{1,2})\s+)?(?P<sys>\d{2,3})\s*([-+.:,:\/])\s*(?P<dia>\d{2,3})\s*\6\s*(?P<pulse>\d{2,3})\b'
+  }
 }
 
 
@@ -296,6 +302,39 @@ def parse_json(lines, as_obj=False, check=False):
     raise BpdiagError(str(e))
 
 
+def parse_regex(lines, regex=PARSERS['regex']['def_regex'], check=False):
+  """
+  Return a list of :cls:`Measurement` instances parsed from *lines*.
+
+  Each line is tested against the given *regular expression*.
+
+  Every none matching line or line without SYS/DIA/PULSE values raises an
+  error. If *check* is ``None`` those errors are ignored and ``None``
+  values are stored instead.
+
+  """
+  regex = re.compile(regex)
+  data = []
+  # iterate over all non-empty lines
+  for line in itertools.ifilter(None, (line.strip() for line in lines)):
+    try:
+      m = regex.search(line)
+      if m:
+        data.append(Measurement(**m.groupdict()))
+      else:
+        if check is None:
+          data.append(None)
+        else:
+          raise BpdiagError("no match on line: '{}'".format(line))
+    except TypeError:
+      if check is None:
+        data.append(None)
+        continue
+      else:
+        raise BpdiagError("missing SYS, DIA and / or PULSE values on line: '{}'".format(line))
+  return data
+
+
 def output_chart(
   stats, filename='bpdiag.svg', png=False, light=False,
   width=False, height=False,
@@ -448,6 +487,18 @@ def get_argument_parser():
   g_p_plain.add_argument(
     '--separator', metavar='STRING', default='/',
     help="splits measure string to sys/dia/pulse values (default: '%(default)s')"
+  )
+  # parser :: regex
+  g_p_regex = ap.add_argument_group(
+    '[PARSER] regex',
+    "Each line of a file is parsed with the given *regular expression*. Every "
+    "named group becomes an attribute of the resulting *Measurement* instance. "
+    "A named group looks like this: `(?P<name-of-the-grp>)`, and you need at "
+    "least a group for SYS, DIA and PULSE."
+  )
+  g_p_regex.add_argument(
+    '--regex', metavar='REGEX', default=PARSERS['regex']['def_regex'],
+    help="regex to use (default: '%(default)s')"
   )
   # parser :: json
   g_p_json = ap.add_argument_group(

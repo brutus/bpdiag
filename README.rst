@@ -68,8 +68,8 @@ each parsed measurement.
 they don't fit your needs (just take a look at the source documentation of
 the module).
 
-Parser: Plaintext
-~~~~~~~~~~~~~~~~~
+Parser: Plaintext [plain]
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The *plaintext parser* is good to grab values from simple text files, like
 copied from a note taking app or whatever. It's for files that just store a
@@ -103,6 +103,31 @@ Will result in the following JSON:
 .. code:: json
 
     [[136,83,65],[132,82,70],null,null,[144,82,86],[137,81,75],null,[143,80,68],[131,82,60],[144,82,64],[136,79,67],[140,80,62],[136,83,68],[138,80,99],null,[133,74,65],[136,79,67],[131,76,64],[135,81,72],[136,75,61],[127,79,72],null,null,null]
+
+Parser: Regular Expression [regex]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Parses each line with a *regular expression*. Every named group becomes an
+attribute of the resulting *Measurement* instance. A named group looks
+like this: ``(?P<name-of-the-grp>)``, and you need at least a group for
+SYS, DIA and PULSE, but you can grab as many info from the line as you want,
+it will get stored in the Measurement instance.
+
+.. code::
+
+     \b((?P<date>\d{4}-\d{1,2}-\d{1,2})\s+)?((?P<time>\d{1,2}:\d{1,2})\s+)?(?P<sys>\d{2,3})\s*([-+.:,:\/])\s*(?P<dia>\d{2,3})\s*\6\s*(?P<pulse>\d{2,3})\b/
+
+This is the default *regex*, it captures *date*, *time*, *sys*, *dia* and
+*pulse*. But you can give set any regular expression with the ``--regex``
+argument.
+
+Parser: JSON [json]
+~~~~~~~~~~~~~~~~~~~
+
+Parses one JSON array from all given files. Each entry in the array needs to
+be either an array with exactly three values for *SYS*, *DIA* and *PULSE* or -
+if ``--as-obj`` is used - a JSON object, in which case all key/value pairs get
+stored.
 
 Output
 ------
