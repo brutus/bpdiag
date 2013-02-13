@@ -92,6 +92,14 @@ except ImportError:
   pass
 
 
+RETURN_CODES = {
+  'okay': 0,
+  'error_argument_parser': 1,
+  'error_input_nothing_found': 2,
+  'error_input_parsing': 3,
+  'error_env_missing_library': 10
+}
+
 PARSERS = {
   'plain': {
     'func': 'parse_plaintext',
@@ -512,6 +520,9 @@ def main(args=None):
     print >> sys.stderr, "Parsed {} value(s)...".format(len(stats.data))
     if stats:
       print >> sys.stderr, stats_as_string(stats)
+    else:
+      print >> sys.stderr, "Sorry, no values found."
+      return RETURN_CODES['error_input_nothing_found']
     # output: do some stuff
     if args.json:
       print json.dumps(
@@ -538,16 +549,16 @@ def main(args=None):
   except BpdiagError as e:
     print >> sys.stderr,\
       "[ERROR] while parsing:", e
-    return 2  # parsing error
+    return RETURN_CODES['error_input_parsing']
   except NameError:
     print >> sys.stderr,\
       "[ERROR] For chart export you need to have PyGal installed."
-    return 1  # library error
+    return RETURN_CODES['error_env_missing_library']
   except ImportError:
     print >> sys.stderr,\
       "[ERROR] For PNG export you need CairoSVG, tinycss and cssselect installed."
-    return 1   # library error
-  return 0  # no errors
+    return RETURN_CODES['error_env_missing_library']
+  return RETURN_CODES['okay']
 
 
 if __name__ == '__main__':
