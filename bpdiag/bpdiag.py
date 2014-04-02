@@ -113,7 +113,10 @@ RETURN_CODES = {
 PARSERS = {
   'plain': {
     'func': 'parse_plaintext',
-    'args': ('entries', 'skip', 'separator', 'delimiter', 'check')
+    'args': (
+      'align_lines', 'keep_empty_lines',
+      'entries', 'skip', 'separator', 'delimiter', 'check'
+    )
   },
   'json': {
     'func': 'parse_json',
@@ -161,6 +164,11 @@ class Measurement(object):
   def as_dict(self):
     return self.__dict__.copy()
 
+  def __repr__(self):
+    return "Measurement(sys={0.sys:3}, dia={0.dia:3}, pulse={0.pulse:3})".format(
+      self
+    )
+
   def __str__(self):
     return "{0.sys:3}/{0.dia:3}/{0.pulse:3}".format(self)
 
@@ -183,14 +191,29 @@ class Statistic(object):
 
   def __init__(self, data):
     self.data = data
-    self.evaluate_data()
+
+  @property
+  def data(self):
+      return self._data
+  @data.setter
+  def data(self, data):
+      self._data = data
+      self.is_list = isinstance(self.data[0], list)
+      self.evaluate_data()
+
+  @property
+  def values(self):
+    if self.is_list:
+      return list(itertools.chain.from_iterable(self.data))
+    else:
+      return self.data
 
   def evaluate_data(self):
     """Build sys / dia / pulse list."""
     self.sys = []
     self.dia = []
     self.pulse = []
-    for measure in self.data:
+    for measure in self.values:
       for attr in ('sys', 'dia', 'pulse'):
         getattr(self, attr).append(getattr(measure, attr, None))
     # calculate statistics
@@ -208,24 +231,31 @@ class Statistic(object):
 
   def as_dict(self):
     data = {}
-    data['data'] = [m.as_dict() if m else None for m in self.data]
+    data['data'] = [m.as_dict() if m else None for m in self.values]
     for attr in self.__dict__:
       if attr != 'data':
         data[attr] = getattr(self, attr)
     return data
+
+  def __len__(self):
+    return len(self.values)
 
   def __nonzero__(self):
     return True if self.data else False
 
 
 def parse_plaintext(
-  lines,
+  lines, align_lines=False, keep_empty_lines=False,
   entries=0, skip='-', separator='/', delimiter=',', check=False
 ):
   """
   Return a list of :cls:`Measurement` instances parsed from *lines*.
 
-  *lines* can contain any number of sys/dia/pulse strings on each line.
+  If *align_lines* is set, a list of list is returned instead.
+  Where each line is represented as a list. If *keep_empty_lines* is also set,
+  empty lines are kept as an empty list.
+
+  A line can contain any number of sys/dia/pulse strings.
 
   For each line **delimiter** is used to split multiple tokens on the line.
   And **separator** is used to split the tokens into the *SYS*, *DIA* and
@@ -243,18 +273,27 @@ def parse_plaintext(
 
   """
   data = []
-  # iterate over all non-empty lines
-  for line in itertools.ifilter(None, (line.strip() for line in lines)):
+  # iterate over all lines
+  for line in lines:
+    line = line.strip()
+    # collect line data
+    line_data = []
+    # print "parse line:", line
+    # print " ", line_data,
+    # skip empty line?
+    if not line and not keep_empty_lines:
+      continue
+    # parse line
     tokens = line.split(delimiter)  # get each token from the line
     # if *entries* is set, parse that much tokens, else parse all:
     for i in range(entries if entries else len(tokens)):
       try:
         token = tokens[i].strip()
-        data.append(Measurement(*token.split(separator)))
+        line_data.append(Measurement(*token.split(separator)))
       except IndexError:
         # ``None`` for missing entries on the line if *entries*
         if not check and entries:
-          data.append(None)
+          line_data.append(None)
           continue
         if check is None:
           continue
@@ -269,7 +308,7 @@ def parse_plaintext(
         ):
           # store ``None`` if *entries*
           if entries:
-            data.append(None)
+            line_data.append(None)
           continue
         if check is None:
           continue
@@ -282,6 +321,12 @@ def parse_plaintext(
         msg = "can't convert all values to INT: SYS: '{}', DIA: '{}', PULSE: '{}'"
         msg = msg.format(*token.split(separator))
         raise BpdiagError(msg)
+    # append line data to collected data
+    # print "->", line_data
+    if align_lines:
+      data.append(line_data)
+    else:
+      data.extend(line_data)
   return data
 
 
@@ -508,6 +553,14 @@ def get_argument_parser():
     "separates the three values and the *delimiter* multiple entires on a line."
   )
   g_p_plain.add_argument(
+    '-a', '--align-lines', action='store_true',
+    help="keep entries one one line together as a list"
+  )
+  g_p_plain.add_argument(
+    '-k', '--keep-empty-lines', action='store_true',
+    help="keep empty lines as an empty list"
+  )
+  g_p_plain.add_argument(
     '-e', '--entries', metavar='INT', type=int, default=0,
     help="number of measures per line; 0 = all (default: '%(default)s')"
   )
@@ -603,7 +656,7 @@ def main(args=None):
     args = get_argument_parser().parse_args(args)
     # parse data from all given files (iterative) and build statistics
     stats = Statistic(parse_data(read_files(args.filenames), args))
-    print >> sys.stderr, "Parsed {} value(s)...".format(len(stats.data))
+    print >> sys.stderr, "Parsed {} value(s)...".format(len(stats))
     if stats:
       print >> sys.stderr, stats_as_string(stats)
     else:
@@ -611,13 +664,21 @@ def main(args=None):
       return RETURN_CODES['error_input_nothing_found']
     # output: do some stuff
     if args.json:
+      if stats.is_list:
+        dump = [[m.as_tuple() if m else None for m in l] for l in stats.data]
+      else:
+        dump = [m.as_tuple() if m else None for m in stats.data]
       print json.dumps(
-        [m.as_tuple() if m else None for m in stats.data],
+        dump,
         indent=args.indent, separators=args.separators, sort_keys=args.sort
       ), "\n\n"
     if args.json_obj:
+      if stats.is_list:
+        dump = [[m.as_dict() if m else None for m in l] for l in stats.data]
+      else:
+        dump = [m.as_dict() if m else None for m in stats.data]
       print json.dumps(
-        [m.as_dict() if m else None for m in stats.data],
+        dump,
         indent=args.indent, separators=args.separators, sort_keys=args.sort
       ), "\n\n"
     if args.json_stats:
