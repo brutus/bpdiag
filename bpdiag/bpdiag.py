@@ -191,15 +191,11 @@ class Statistic(object):
 
   def __init__(self, data):
     self.data = data
+    self.evaluate_data()
 
   @property
-  def data(self):
-      return self._data
-  @data.setter
-  def data(self, data):
-      self._data = data
-      self.is_list = isinstance(self.data[0], list)
-      self.evaluate_data()
+  def is_list(self):
+    return isinstance(self.data[0], list)
 
   @property
   def values(self):
@@ -208,14 +204,21 @@ class Statistic(object):
     else:
       return self.data
 
+  @property
+  def measurements(self):
+    return filter(None, self.values)
+
+  @property
+  def skipped(self):
+    return len(self) - len(self.measurements)
+
   def evaluate_data(self):
     """Build sys / dia / pulse list."""
-    self.sys = []
-    self.dia = []
-    self.pulse = []
+    self.sys, self.dia, self.pulse = [], [], []
     for measure in self.values:
-      for attr in ('sys', 'dia', 'pulse'):
-        getattr(self, attr).append(getattr(measure, attr, None))
+      self.sys.append(getattr(measure, 'sys', None))
+      self.dia.append(getattr(measure, 'dia', None))
+      self.pulse.append(getattr(measure, 'pulse', None))
     # calculate statistics
     for attr, values in (
       ('sys', self.sys), ('dia', self.dia), ('pulse', self.pulse)
@@ -307,8 +310,8 @@ def parse_plaintext(
           (len(token) == 0 and len(tokens) - 1 == i)
         ):
           # store ``None`` if *entries*
-          if entries:
-            line_data.append(None)
+          # if entries:
+          line_data.append(None)
           continue
         if check is None:
           continue
@@ -656,7 +659,9 @@ def main(args=None):
     args = get_argument_parser().parse_args(args)
     # parse data from all given files (iterative) and build statistics
     stats = Statistic(parse_data(read_files(args.filenames), args))
-    print >> sys.stderr, "Parsed {} value(s)...".format(len(stats))
+    print >> sys.stderr, "Parsed {} values ({} skipped)...".format(
+      len(stats), stats.skipped
+    )
     if stats:
       print >> sys.stderr, stats_as_string(stats)
     else:
