@@ -65,10 +65,14 @@ cssselect_ too. You can install them like this::
 
     pip install --user CairoSVG tinycss cssselect
 
+If avialable, this script uses unicodecsv_ instead of the standard
+:modul:`csv` modul, because it "*supports unicode strings without a hassle*".
+
 .. _PyGal: http://pygal.org/
 .. _CairoSVG: http://cairosvg.org/
 .. _tinycss: http://packages.python.org/tinycss/
 .. _cssselect: http://packages.python.org/cssselect/
+.. _unicodecsv: https://github.com/jdunck/python-unicodecsv
 
 """
 
@@ -92,6 +96,11 @@ try:
 except ImportError:
   pass
 
+try:
+  import unicodecsv as csv
+except ImportError:
+  import csv
+
 
 RETURN_CODES = {
   'okay': 0,
@@ -114,7 +123,11 @@ PARSERS = {
     'func': 'parse_regex',
     'args': ('check', ),
     'def_regex': ur'\b((?P<date>\d{4}-\d{1,2}-\d{1,2})\s+)?((?P<time>\d{1,2}:\d{1,2})\s+)?(?P<sys>\d{2,3})\s*([-+.:,:\/])\s*(?P<dia>\d{2,3})\s*\6\s*(?P<pulse>\d{2,3})\b'
-  }
+  },
+  'csv': {
+    'func': 'parse_csv',
+    'args': tuple(),
+  },
 }
 
 
@@ -333,6 +346,28 @@ def parse_regex(lines, regex=PARSERS['regex']['def_regex'], check=False):
       else:
         raise BpdiagError("missing SYS, DIA and / or PULSE values on line: '{}'".format(line))
   return data
+
+
+def parse_csv(lines, fieldnames, delimiter=','):
+  """
+  Return a list of :cls:`Measurement` instances parsed from *lines*.
+
+  Each line is treated as a couple of values, seperated by *delimiter*. Each
+  of the values is maped to the names in *fieldnames*. The resulting pairing
+  is then used as *kwargs* to create the :cls:`Measurement` instances.
+
+  If a line has more fields than the fieldnames, the remaining data is added
+  to the *extra* attribute of the instance. If the line has fewer fields, the
+  remaining keys take the value of ``None``.
+
+  """
+  return [
+    Measurement(
+      **csv.DictReader(
+        lines, fieldnames, restkey='extra', delimiter=delimiter
+      )
+    )
+  ]
 
 
 def output_chart(
